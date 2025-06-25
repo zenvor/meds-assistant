@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>您的个人用药提醒助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Chosen Palette: Teal, Slate, Amber for a clean, calming, and functional health app feel. -->
+    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day (Morning, Noon, Evening) using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
+    <!-- Visualization & Content Choices: 
+        - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into three columns (Morning/Noon/Evening). Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
+        - Progress Tracking: Goal: Motivate. Method: A dynamic HTML/CSS progress bar. Interaction: Updates automatically as doses are checked off. Justification: Provides positive reinforcement and a clear overview of daily completion.
+        - Time Context: Goal: Orient. Method: A live digital clock and dynamic styling (a glowing border) on the current time slot's section. Justification: Immediately draws the user's attention to what needs to be done *now*.
+        - Notifications: Goal: Remind. Method: A button to enable browser Notifications API. Interaction: User grants permission. Justification: This fulfills the core "reminder" request in the most effective way possible for a web app.
+        - Library/Method: Vanilla JS for all logic (time, state management, rendering), Tailwind CSS for styling. No charts needed.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+      body {
+        font-family: 'Noto Sans SC', sans-serif;
+        background-color: #f1f5f9;
+        /* slate-100 */
+      }
+
+      .time-slot.active {
+        border-color: #0d9488;
+        /* teal-600 */
+        box-shadow: 0 0 15px rgba(13, 148, 136, 0.2);
+      }
+
+      .med-card.taken {
+        background-color: #f8fafc;
+        /* slate-50 */
+        opacity: 0.6;
+      }
+
+      .med-card.taken .med-name {
+        text-decoration: line-through;
+      }
+
+      .progress-bar-fill {
+        transition: width 0.5s ease-in-out;
+      }
+    </style>
+  </head>
+
+  <body class="text-slate-800">
+    <main class="container mx-auto p-4 md:p-8 max-w-4xl">
+      <header class="text-center mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-teal-700">个人用药提醒助手</h1>
+        <p id="current-date" class="text-lg text-slate-500 mt-2"></p>
+        <p id="current-time" class="text-4xl font-bold text-slate-700 tracking-wider mt-1"></p>
+      </header>
+
+      <div class="bg-white p-4 rounded-xl shadow-md mb-8">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-semibold">今日服药进度</span>
+          <span id="progress-text" class="font-bold text-teal-600">0 / 11</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-4">
+          <div id="progress-bar" class="bg-teal-500 h-4 rounded-full progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div class="text-center mt-4">
+          <button
+            id="notification-btn"
+            class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+          >
+            开启浏览器提醒
+          </button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Morning Slot -->
+        <section
+          id="morning"
+          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
+        >
+          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">☀️ 早上</h2>
+          <div id="morning-meds" class="space-y-4"></div>
+        </section>
+
+        <!-- Noon Slot -->
+        <section
+          id="noon"
+          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
+        >
+          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">🕛 中午</h2>
+          <div id="noon-meds" class="space-y-4"></div>
+        </section>
+
+        <!-- Evening Slot -->
+        <section
+          id="evening"
+          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
+        >
+          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">🌙 晚上</h2>
+          <div id="evening-meds" class="space-y-4"></div>
+        </section>
+      </div>
+      <footer class="text-center mt-8">
+        <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline">重置今日记录</button>
+      </footer>
+    </main>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const medicationSchedule = [
+          {
+            id: 'careprazen',
+            name: '盐酸凯普拉生片',
+            dose: '2片',
+            times: ['morning', 'evening'],
+            icon: '💧',
+            timing: '饭前饭后均可',
+          },
+          {
+            id: 'mosapride',
+            name: '枸橼酸莫沙必利片',
+            dose: '1片',
+            times: ['morning', 'noon', 'evening'],
+            icon: '⚙️',
+            timing: '饭前半小时服用',
+          },
+          {
+            id: 'sucralfate',
+            name: '硫糖铝混悬凝胶',
+            dose: '1袋',
+            times: ['morning', 'noon', 'evening'],
+            icon: '🩹',
+            timing: '两餐之间服用',
+          },
+          {
+            id: 'houtou',
+            name: '猴头健胃灵片',
+            dose: '4片',
+            times: ['morning', 'noon', 'evening'],
+            icon: '🌿',
+            timing: '饭前服用',
+          },
+        ]
+
+        const timeSlots = {
+          morning: { start: 6, end: 10, container: document.getElementById('morning-meds') },
+          noon: { start: 11, end: 15, container: document.getElementById('noon-meds') },
+          evening: { start: 17, end: 21, container: document.getElementById('evening-meds') },
+        }
+
+        const totalDoses = medicationSchedule.reduce((acc, med) => acc + med.times.length, 0)
+
+        function getTodayKey() {
+          const now = new Date()
+          return `medTracker-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
+        }
+
+        let takenState = JSON.parse(localStorage.getItem(getTodayKey())) || {}
+
+        function saveState() {
+          localStorage.setItem(getTodayKey(), JSON.stringify(takenState))
+        }
+
+        function renderMedications() {
+          Object.values(timeSlots).forEach((slot) => (slot.container.innerHTML = ''))
+
+          medicationSchedule.forEach((med) => {
+            med.times.forEach((time) => {
+              const slot = timeSlots[time]
+              if (slot) {
+                const doseId = `${med.id}-${time}`
+                const isTaken = !!takenState[doseId]
+
+                const card = document.createElement('div')
+                card.className = `med-card p-4 rounded-lg flex items-center transition-all ${
+                  isTaken ? 'taken' : 'bg-slate-100'
+                }`
+                card.innerHTML = `
+                            <div class="text-3xl mr-4">${med.icon}</div>
+                            <div class="flex-grow">
+                                <p class="font-bold med-name">${med.name}</p>
+                                <p class="text-sm text-amber-700 font-semibold">${med.timing}</p>
+                                <p class="text-slate-600 text-sm mt-1">${med.dose}</p>
+                            </div>
+                            <input type="checkbox" data-dose-id="${doseId}" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500" ${
+                  isTaken ? 'checked' : ''
+                }>
+                        `
+                slot.container.appendChild(card)
+              }
+            })
+          })
+          addEventListeners()
+          updateProgress()
+        }
+
+        function addEventListeners() {
+          document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+            checkbox.addEventListener('change', (e) => {
+              const doseId = e.target.dataset.doseId
+              if (e.target.checked) {
+                takenState[doseId] = true
+              } else {
+                delete takenState[doseId]
+              }
+              saveState()
+              renderMedications()
+            })
+          })
+        }
+
+        function updateProgress() {
+          const takenCount = Object.keys(takenState).length
+          const progress = (takenCount / totalDoses) * 100
+          document.getElementById('progress-bar').style.width = `${progress}%`
+          document.getElementById('progress-text').textContent = `${takenCount} / ${totalDoses}`
+        }
+
+        function updateTime() {
+          const now = new Date()
+          const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
+          document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', dateOptions)
+          document.getElementById('current-time').textContent = now.toLocaleTimeString('zh-CN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+
+          const currentHour = now.getHours()
+          document.querySelectorAll('.time-slot').forEach((el) => el.classList.remove('active'))
+
+          if (currentHour >= timeSlots.morning.start && currentHour <= timeSlots.morning.end) {
+            document.getElementById('morning').classList.add('active')
+          } else if (currentHour >= timeSlots.noon.start && currentHour <= timeSlots.noon.end) {
+            document.getElementById('noon').classList.add('active')
+          } else if (currentHour >= timeSlots.evening.start && currentHour <= timeSlots.evening.end) {
+            document.getElementById('evening').classList.add('active')
+          }
+        }
+
+        const notificationBtn = document.getElementById('notification-btn')
+        notificationBtn.addEventListener('click', () => {
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              alert('浏览器提醒已开启！将会在服药时间段开始时提醒您。')
+              notificationBtn.textContent = '提醒功能已开启'
+              notificationBtn.disabled = true
+              notificationBtn.classList.add('opacity-50', 'cursor-not-allowed')
+            } else {
+              alert('您已阻止浏览器提醒。如需开启，请在浏览器设置中修改。')
+            }
+          })
+        })
+
+        function scheduleNotifications() {
+          setInterval(() => {
+            const now = new Date()
+            const minutes = now.getMinutes()
+            if (minutes === 0) {
+              const currentHour = now.getHours()
+              let medsToTakeNow = []
+              let slotName = ''
+
+              Object.entries(timeSlots).forEach(([key, slot]) => {
+                if (currentHour === slot.start) {
+                  medicationSchedule.forEach((med) => {
+                    if (med.times.includes(key) && !takenState[`${med.id}-${key}`]) {
+                      medsToTakeNow.push(`${med.name} (${med.timing})`)
+                    }
+                  })
+                  if (key === 'morning') slotName = '早上'
+                  if (key === 'noon') slotName = '中午'
+                  if (key === 'evening') slotName = '晚上'
+                }
+              })
+
+              if (medsToTakeNow.length > 0 && Notification.permission === 'granted') {
+                new Notification(`该吃${slotName}的药了！`, {
+                  body: '请服用：\n' + medsToTakeNow.join('\n'),
+                  icon: './favicon.ico',
+                })
+              }
+            }
+          }, 60000)
+        }
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+          if (confirm('您确定要清除今天所有的服药记录吗？')) {
+            takenState = {}
+            saveState()
+            renderMedications()
+          }
+        })
+
+        renderMedications()
+        updateTime()
+        scheduleNotifications()
+        setInterval(updateTime, 1000)
+      })
+    </script>
+  </body>
+</html>
