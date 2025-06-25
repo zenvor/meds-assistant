@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>您的个人用药提醒助手</title>
+    <title>您的个人用药提醒助手 (精致版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,7 +24,7 @@
     <style>
       body {
         font-family: 'Noto Sans SC', sans-serif;
-        background-color: #f0f4f8; /* A softer, cooler background */
+        background-color: #f0f4f8;
       }
       @keyframes fadeIn {
         from {
@@ -36,48 +36,49 @@
           transform: translateY(0);
         }
       }
+      @keyframes slideInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
       .fade-in {
         animation: fadeIn 0.5s ease-out forwards;
       }
+      .slide-in-down {
+        animation: slideInDown 0.4s ease-out forwards;
+      }
+
       .timeline-item.next-up .med-card-wrapper {
-        border-color: #facc15; /* yellow-400 */
+        border-color: #facc15;
         box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
       }
+      /* Removed hover effect as requested */
       .med-card {
         transition: all 0.3s ease;
       }
-      .med-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
-      }
-      .med-card.taken {
-        background-color: #f8fafc;
-        opacity: 0.5;
-      }
-      .med-card.taken:hover {
-        transform: translateY(0);
-      }
-      .med-card.taken .med-name,
-      .med-card.taken .med-timing {
-        text-decoration: line-through;
-        text-decoration-color: #94a3b8;
-      }
+
       .progress-bar-fill {
         transition: width 0.5s ease-in-out;
         background-image: linear-gradient(to right, #2dd4bf, #0d9488);
       }
       .timeline-item {
         position: relative;
-        padding-left: 3rem;
+        padding-left: 2rem;
+        padding-bottom: 1rem;
       }
       .timeline-dot {
         position: absolute;
-        left: -0.625rem;
+        left: -0.5rem;
         top: 0.25rem;
-        height: 1.5rem;
-        width: 1.5rem;
+        height: 1.25rem;
+        width: 1.25rem;
         background-color: #f0f4f8;
-        border-width: 4px;
+        border-width: 3px;
         border-radius: 9999px;
         z-index: 10;
         transition: all 0.3s ease;
@@ -91,27 +92,56 @@
         left: 0;
         top: 0;
         bottom: 0;
-        width: 4px;
+        width: 3px;
         background-color: #e2e8f0;
       }
-      .timeline-item:first-child .timeline-line {
-        top: 1.25rem;
+      .timeline-item:last-of-type .timeline-line {
+        display: none;
       }
-      .timeline-item:last-child .timeline-line {
-        bottom: calc(100% - 1.25rem);
+
+      /* Accordion animation fix */
+      #taken-meds-content {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.5s ease-in-out;
+      }
+      #taken-meds-content.expanded {
+        grid-template-rows: 1fr;
+      }
+      #taken-meds-container-wrapper {
+        overflow: hidden;
+      }
+      #taken-meds-container {
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      #taken-meds-container::-webkit-scrollbar {
+        width: 6px;
+      }
+      #taken-meds-container::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 10px;
+      }
+      #taken-meds-container::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 10px;
+      }
+      #taken-meds-container::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
       }
     </style>
   </head>
 
   <body class="text-slate-800">
     <main class="container mx-auto p-4 md:p-8 max-w-3xl">
-      <header class="text-center mb-10 fade-in">
+      <header class="text-center mb-8 fade-in">
         <h1 class="text-3xl md:text-4xl font-bold text-teal-800">个人用药提醒助手</h1>
         <p id="current-date" class="text-lg text-slate-500 mt-2 font-light"></p>
         <p id="current-time" class="text-5xl font-bold text-slate-700 tracking-wider mt-1"></p>
       </header>
 
-      <div class="bg-white p-6 rounded-2xl shadow-lg mb-10 fade-in" style="animation-delay: 100ms">
+      <div class="bg-white p-6 rounded-2xl shadow-lg mb-8 fade-in" style="animation-delay: 100ms">
         <div class="flex justify-between items-center mb-2">
           <span class="font-semibold text-slate-700">今日服药进度</span>
           <span id="progress-text" class="font-bold text-teal-600">0 / 11</span>
@@ -124,14 +154,7 @@
             id="notification-btn"
             class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg text-sm flex items-center justify-center mx-auto gap-2"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              class="bi bi-bell-fill"
-              viewBox="0 0 16 16"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
               <path
                 d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"
               />
@@ -141,11 +164,43 @@
         </div>
       </div>
 
-      <div id="medication-timeline" class="space-y-4">
+      <!-- Taken Meds Accordion -->
+      <div id="taken-meds-accordion" class="bg-white rounded-2xl shadow-lg mb-8 fade-in" style="animation-delay: 200ms">
+        <button id="taken-meds-header" class="w-full p-4 flex justify-between items-center cursor-pointer">
+          <h2 class="text-xl font-bold text-slate-700">今日已服用</h2>
+          <div class="flex items-center gap-2">
+            <span id="taken-summary" class="text-slate-500 font-medium text-sm"></span>
+            <svg
+              id="accordion-arrow"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              class="bi bi-chevron-down transition-transform duration-300"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"
+              />
+            </svg>
+          </div>
+        </button>
+        <div id="taken-meds-content">
+          <div id="taken-meds-container-wrapper">
+            <div id="taken-meds-container" class="space-y-3 p-4 pt-0 border-t border-slate-200">
+              <!-- Taken meds will be dynamically inserted here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Meds Timeline -->
+      <div id="medication-timeline" class="space-y-2">
         <!-- Timeline items will be generated here -->
       </div>
 
-      <footer class="text-center mt-10">
+      <footer class="text-center mt-12">
         <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline transition-colors">
           重置今日记录
         </button>
@@ -154,14 +209,20 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
+        const svgIcons = {
+          houtou: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.03 15.41c-1.3-.47-2.39-1.57-2.86-2.87-.13-.37.28-.66.6-.49 1.49.78 3.21.78 4.7 0 .32-.17.73.12.6.49-.47 1.3-1.56 2.4-2.86 2.87-.2.07-.46.07-.68 0zM7.5 11C6.67 11 6 10.33 6 9.5S6.67 8 7.5 8s1.5.67 1.5 1.5S8.33 11 7.5 11zm9 0c-.83 0-1.5-.67-1.5-1.5S15.67 8 16.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" fill="#34d399"/></svg>`,
+          mosapride: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.98 12.63c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 0015 11.93c0 .25.05.48.14.7L12 14.5l-3.14-2.17c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 004 11.93c0 .25.05.48.14.7L12 20l7.98-7.37zM12 4L4 9.37V20h16V9.37L12 4z" fill="#38bdf8"/></svg>`,
+          careprazen: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17.5c-1.96 0-3.73-.91-4.88-2.34a.75.75 0 011.06-1.06c.82.82 2.05 1.32 3.39 1.32s2.57-.5 3.39-1.32a.75.75 0 111.06 1.06A6.97 6.97 0 0112 19.5z" fill="#818cf8"/></svg>`,
+          sucralfate: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 4H7c-1.66 0-3 1.34-3 3v10c0 1.66 1.34 3 3 3h10c1.66 0 3-1.34 3-3V7c0-1.66-1.34-3-3-3zm-2 10h-2v2h-2v-2H9v-2h2V9h2v2h2v2z" fill="#f472b6"/></svg>`,
+        }
         const medicationSchedule = [
-          { id: 'houtou_am', name: '猴头健胃灵片', dose: '4片', time: '07:00', icon: '🌿', timing: '饭前服用' },
+          { id: 'houtou_am', name: '猴头健胃灵片', dose: '4片', time: '07:00', iconKey: 'houtou', timing: '饭前服用' },
           {
             id: 'mosapride_am',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             time: '07:00',
-            icon: '⚙️',
+            iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
           {
@@ -169,7 +230,7 @@
             name: '盐酸凯普拉生片',
             dose: '2片',
             time: '07:30',
-            icon: '💧',
+            iconKey: 'careprazen',
             timing: '饭前饭后均可',
           },
           {
@@ -177,16 +238,23 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             time: '10:00',
-            icon: '🩹',
+            iconKey: 'sucralfate',
             timing: '两餐之间服用',
           },
-          { id: 'houtou_noon', name: '猴头健胃灵片', dose: '4片', time: '12:00', icon: '🌿', timing: '饭前服用' },
+          {
+            id: 'houtou_noon',
+            name: '猴头健胃灵片',
+            dose: '4片',
+            time: '12:00',
+            iconKey: 'houtou',
+            timing: '饭前服用',
+          },
           {
             id: 'mosapride_noon',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             time: '12:00',
-            icon: '⚙️',
+            iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
           {
@@ -194,16 +262,16 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             time: '15:00',
-            icon: '🩹',
+            iconKey: 'sucralfate',
             timing: '两餐之间服用',
           },
-          { id: 'houtou_pm', name: '猴头健胃灵片', dose: '4片', time: '18:00', icon: '🌿', timing: '饭前服用' },
+          { id: 'houtou_pm', name: '猴头健胃灵片', dose: '4片', time: '18:00', iconKey: 'houtou', timing: '饭前服用' },
           {
             id: 'mosapride_pm',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             time: '18:00',
-            icon: '⚙️',
+            iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
           {
@@ -211,7 +279,7 @@
             name: '盐酸凯普拉生片',
             dose: '2片',
             time: '18:30',
-            icon: '💧',
+            iconKey: 'careprazen',
             timing: '饭前饭后均可',
           },
           {
@@ -219,160 +287,171 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             time: '21:00',
-            icon: '🩹',
+            iconKey: 'sucralfate',
             timing: '两餐之间服用',
           },
         ]
-
         const timelineContainer = document.getElementById('medication-timeline')
+        const takenContainer = document.getElementById('taken-meds-container')
+        const takenContent = document.getElementById('taken-meds-content')
+        const accordionHeader = document.getElementById('taken-meds-header')
+        const accordionArrow = document.getElementById('accordion-arrow')
         const totalDoses = medicationSchedule.length
-        const iconColors = { '🌿': 'bg-emerald-100', '⚙️': 'bg-sky-100', '💧': 'bg-indigo-100', '🩹': 'bg-rose-100' }
+        const iconColors = {
+          houtou: 'bg-emerald-100',
+          mosapride: 'bg-sky-100',
+          careprazen: 'bg-indigo-100',
+          sucralfate: 'bg-rose-100',
+        }
 
         function getTodayKey(prefix) {
           const now = new Date()
           return `${prefix}-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
         }
-
         let takenState = JSON.parse(localStorage.getItem(getTodayKey('medTakenState'))) || {}
         let notifiedState = JSON.parse(localStorage.getItem(getTodayKey('medNotifiedState'))) || {}
-
         function saveState(key, state) {
           localStorage.setItem(getTodayKey(key), JSON.stringify(state))
         }
 
         function renderMedications() {
           timelineContainer.innerHTML = ''
-          const groupedByTime = medicationSchedule.reduce((acc, med) => {
+          takenContainer.innerHTML = ''
+          const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
+          const takenMeds = medicationSchedule.filter((med) => takenState[med.id])
+
+          const groupedByTime = upcomingMeds.reduce((acc, med) => {
             ;(acc[med.time] = acc[med.time] || []).push(med)
             return acc
           }, {})
 
           let delay = 200
-          for (const time in groupedByTime) {
-            const meds = groupedByTime[time]
-            const timelineItemId = `timeline-${time.replace(':', '')}`
-
-            const itemWrapper = document.createElement('div')
-            itemWrapper.id = timelineItemId
-            itemWrapper.className = 'timeline-item pt-1 pb-4 fade-in'
-            itemWrapper.style.animationDelay = `${delay}ms`
-
-            itemWrapper.innerHTML = `
+          if (Object.keys(groupedByTime).length === 0) {
+            timelineContainer.innerHTML = `<div class="text-center p-10 bg-white rounded-2xl shadow-lg"><p class="text-xl text-teal-600 font-semibold">🎉 恭喜！今日药物已全部服用完毕！</p></div>`
+          } else {
+            for (const time in groupedByTime) {
+              const meds = groupedByTime[time]
+              const itemWrapper = document.createElement('div')
+              itemWrapper.id = `timeline-${time.replace(':', '')}`
+              itemWrapper.className = 'timeline-item fade-in'
+              itemWrapper.style.animationDelay = `${delay}ms`
+              itemWrapper.innerHTML = `
                         <div class="timeline-line"></div>
                         <div class="timeline-dot border-slate-300"></div>
-                        <h3 class="text-2xl font-bold ml-2 mb-4 text-slate-600">${time}</h3>
+                        <h3 class="text-xl font-bold ml-1 mb-3 text-slate-500">${time}</h3>
                         <div class="space-y-4">
                             ${meds
-                              .map((med) => {
-                                const isTaken = !!takenState[med.id]
-                                return `
-                                <div class="med-card-wrapper rounded-2xl border-2 border-transparent transition-all duration-300">
-                                  <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg ${
-                                    isTaken ? 'taken' : ''
-                                  }">
-                                      <div class="text-3xl mr-4 w-14 h-14 flex-shrink-0 rounded-full flex items-center justify-center ${
-                                        iconColors[med.icon]
-                                      }">${med.icon}</div>
-                                      <div class="flex-grow">
-                                          <p class="font-bold text-base med-name">${med.name}</p>
-                                          <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
-                                          <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
-                                      </div>
-                                      <input type="checkbox" data-dose-id="${
-                                        med.id
-                                      }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer" ${
-                                  isTaken ? 'checked' : ''
-                                }>
+                              .map(
+                                (med) => `
+                            <div class="med-card-wrapper rounded-2xl border-2 border-transparent transition-all duration-300">
+                              <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg">
+                                  <div class="text-3xl mr-4 w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center ${
+                                    iconColors[med.iconKey]
+                                  }">${svgIcons[med.iconKey]}</div>
+                                  <div class="flex-grow">
+                                      <p class="font-bold text-base med-name">${med.name}</p>
+                                      <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
+                                      <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
                                   </div>
-                                </div>
-                                `
-                              })
+                                  <input type="checkbox" data-dose-id="${
+                                    med.id
+                                  }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer">
+                              </div>
+                            </div>`
+                              )
                               .join('')}
-                        </div>
-                    `
-            timelineContainer.appendChild(itemWrapper)
-            delay += 100
+                        </div>`
+              timelineContainer.appendChild(itemWrapper)
+              delay += 100
+            }
           }
+
+          document.getElementById('taken-summary').textContent = `${takenMeds.length} / ${totalDoses} 种`
+          if (takenMeds.length === 0) {
+            takenContainer.innerHTML = `<p class="text-slate-400 text-center py-4">暂无已服用记录</p>`
+          } else {
+            takenMeds
+              .sort((a, b) => a.time.localeCompare(b.time))
+              .forEach((med) => {
+                const takenCard = document.createElement('div')
+                takenCard.className = 'slide-in-down bg-slate-100 p-3 rounded-lg flex items-center gap-3 text-sm'
+                takenCard.innerHTML = `
+                        <div class="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center ${
+                          iconColors[med.iconKey]
+                        }">${svgIcons[med.iconKey]}</div>
+                        <div class="flex-grow">
+                            <p class="font-semibold text-slate-600">${med.name}</p>
+                            <p class="text-xs text-slate-500">${med.time} - ${med.dose}</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill text-teal-500 flex-shrink-0" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`
+                takenContainer.appendChild(takenCard)
+              })
+          }
+
           addEventListeners()
           updateProgress()
-          updateTime() // Call updateTime after rendering to apply highlighting immediately
+          updateTime()
         }
 
         function addEventListeners() {
           document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
             checkbox.addEventListener('change', (e) => {
-              const doseId = e.target.dataset.doseId
-              takenState[doseId] = e.target.checked
-              if (!e.target.checked) delete takenState[doseId]
-              saveState('medTakenState', takenState)
-              // No full re-render, just update styles for performance
-              const card = e.target.closest('.med-card')
-              card.classList.toggle('taken', e.target.checked)
-              updateProgress()
-              updateTime() // Re-evaluate highlighting
+              if (e.target.checked) {
+                const doseId = e.target.dataset.doseId
+                takenState[doseId] = true
+                saveState('medTakenState', takenState)
+                const cardWrapper = e.target.closest('.med-card-wrapper')
+                cardWrapper.style.transition = 'all 0.4s ease'
+                cardWrapper.style.transform = 'scale(0.8)'
+                cardWrapper.style.opacity = '0'
+                setTimeout(() => {
+                  renderMedications()
+                }, 400)
+              }
             })
           })
+          accordionHeader.addEventListener('click', () => {
+            takenContent.classList.toggle('expanded')
+            accordionArrow.classList.toggle('rotate-180')
+          })
         }
-
         function updateProgress() {
           const takenCount = Object.values(takenState).filter(Boolean).length
           const progress = totalDoses > 0 ? (takenCount / totalDoses) * 100 : 0
           document.getElementById('progress-bar').style.width = `${progress}%`
           document.getElementById('progress-text').textContent = `${takenCount} / ${totalDoses}`
         }
-
         function updateTime() {
           const now = new Date()
           const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
           document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', dateOptions)
-          const currentTimeStr = now.toLocaleTimeString('zh-CN', {
+          document.getElementById('current-time').textContent = now.toLocaleTimeString('zh-CN', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
           })
-          document.getElementById('current-time').textContent = currentTimeStr
 
           const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
           let nextMedTime = null
-
-          // Find the first untaken time slot that is in the future
-          const sortedTimes = Object.keys(
-            medicationSchedule.reduce((acc, med) => {
-              acc[med.time] = true
-              return acc
-            }, {})
-          ).sort()
+          const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
+          const sortedTimes = [...new Set(upcomingMeds.map((m) => m.time))].sort()
           for (const time of sortedTimes) {
-            const medsInSlot = medicationSchedule.filter((m) => m.time === time)
-            const allTakenInSlot = medsInSlot.every((m) => takenState[m.id])
-            if (time >= nowHHMM && !allTakenInSlot) {
+            if (time >= nowHHMM) {
               nextMedTime = time
               break
             }
           }
-          // If all future slots are taken, check past slots for untaken meds
-          if (!nextMedTime) {
-            for (const time of sortedTimes.reverse()) {
-              const medsInSlot = medicationSchedule.filter((m) => m.time === time)
-              const allTakenInSlot = medsInSlot.every((m) => takenState[m.id])
-              if (!allTakenInSlot) {
-                nextMedTime = time
-                break
-              }
-            }
+          if (!nextMedTime && sortedTimes.length > 0) {
+            nextMedTime = sortedTimes[0]
           }
 
           document.querySelectorAll('.timeline-item').forEach((el) => {
             el.classList.remove('next-up')
-            el.querySelector('.timeline-dot').classList.remove('border-yellow-400', 'bg-yellow-50')
           })
-
           if (nextMedTime) {
-            const nextItemId = `timeline-${nextMedTime.replace(':', '')}`
-            const nextItem = document.getElementById(nextItemId)
+            const nextItem = document.getElementById(`timeline-${nextMedTime.replace(':', '')}`)
             if (nextItem) {
               nextItem.classList.add('next-up')
-              nextItem.querySelector('.timeline-dot').classList.add('border-yellow-400', 'bg-yellow-50')
             }
           }
         }
@@ -385,17 +464,12 @@
           }
           Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
-              alert('浏览器提醒已开启！将会在设定的时间点精确提醒您。')
-              notificationBtn.innerHTML = `
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell-slash-fill" viewBox="0 0 16 16">
-                            <path d="M5.161 14.016A2 2 0 0 0 8 16a2 2 0 0 0 2.83-1.985l-6.67-6.67A5 5 0 0 0 3 6c0-.27.028-.533.08-.786zM11 5.183a5 5 0 0 0-4.437-4.087A1 1 0 0 0 4.995.1a1 1 0 0 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h1.645l10.5-10.5zM2.71 1.056a1 1 0 0 1 1.414 0L14.94 11.828a1 1 0 0 1-1.414 1.414L2.71 2.47a1 1 0 0 1 0-1.414"/>
-                          </svg>
-                          提醒功能已开启`
+              alert('浏览器提醒已开启！')
+              notificationBtn.innerHTML = `... 提醒功能已开启`
               notificationBtn.classList.replace('bg-yellow-400', 'bg-slate-300')
               notificationBtn.classList.replace('text-yellow-900', 'text-slate-600')
-              new Notification('测试提醒', { body: '提醒功能设置成功！' })
             } else {
-              alert('您已阻止浏览器提醒。如需开启，请在浏览器设置中修改。')
+              alert('您已阻止浏览器提醒。')
             }
           })
         })
@@ -403,14 +477,10 @@
         function scheduleNotifications() {
           const now = new Date()
           const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-
           medicationSchedule.forEach((med) => {
             if (med.time === nowHHMM && !takenState[med.id] && !notifiedState[med.id]) {
               if (Notification.permission === 'granted') {
-                new Notification(`该吃药了: ${med.name}`, {
-                  body: `请服用 ${med.dose} (${med.timing})`,
-                  icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${med.icon}</text></svg>',
-                })
+                new Notification(`该吃药了: ${med.name}`, { body: `请服用 ${med.dose} (${med.timing})` })
                 notifiedState[med.id] = true
                 saveState('medNotifiedState', notifiedState)
               }
@@ -428,7 +498,6 @@
           }
         })
 
-        // Initial setup
         renderMedications()
         setInterval(updateTime, 1000)
         setInterval(scheduleNotifications, 30000)
