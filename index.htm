@@ -7,9 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
-    <!-- Chosen Palette: Teal, Slate, Amber for a clean, calming, and functional health app feel. -->
-    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day (Morning, Noon, Evening) using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Chosen Palette: Refined Teal, Slate, Soft Gold for a calming, premium health app feel. -->
+    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
     <!-- Visualization & Content Choices: 
         - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into a single timeline. Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
         - Progress Tracking: Goal: Motivate. Method: A dynamic HTML/CSS progress bar. Interaction: Updates automatically as doses are checked off. Justification: Provides positive reinforcement and a clear overview of daily completion.
@@ -21,37 +24,67 @@
     <style>
       body {
         font-family: 'Noto Sans SC', sans-serif;
-        background-color: #f1f5f9;
+        background-color: #f0f4f8; /* A softer, cooler background */
       }
-      .timeline-item.next-up {
-        border-color: #f59e0b; /* amber-500 */
-        box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+      }
+      .timeline-item.next-up .med-card-wrapper {
+        border-color: #facc15; /* yellow-400 */
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+      }
+      .med-card {
+        transition: all 0.3s ease;
+      }
+      .med-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
       }
       .med-card.taken {
         background-color: #f8fafc;
-        opacity: 0.6;
+        opacity: 0.5;
+      }
+      .med-card.taken:hover {
+        transform: translateY(0);
       }
       .med-card.taken .med-name,
       .med-card.taken .med-timing {
         text-decoration: line-through;
+        text-decoration-color: #94a3b8;
       }
       .progress-bar-fill {
         transition: width 0.5s ease-in-out;
+        background-image: linear-gradient(to right, #2dd4bf, #0d9488);
       }
       .timeline-item {
         position: relative;
-        padding-left: 2.5rem; /* Space for timeline line and dot */
+        padding-left: 3rem;
       }
       .timeline-dot {
         position: absolute;
-        left: -0.5rem;
-        top: 0;
-        height: 1.25rem;
-        width: 1.25rem;
-        background-color: white;
+        left: -0.625rem;
+        top: 0.25rem;
+        height: 1.5rem;
+        width: 1.5rem;
+        background-color: #f0f4f8;
         border-width: 4px;
         border-radius: 9999px;
         z-index: 10;
+        transition: all 0.3s ease;
+      }
+      .timeline-item.next-up .timeline-dot {
+        border-color: #facc15;
+        background-color: #fefce8;
       }
       .timeline-line {
         position: absolute;
@@ -59,49 +92,63 @@
         top: 0;
         bottom: 0;
         width: 4px;
-        background-color: #e2e8f0; /* slate-200 */
+        background-color: #e2e8f0;
       }
       .timeline-item:first-child .timeline-line {
-        top: 1rem;
+        top: 1.25rem;
       }
       .timeline-item:last-child .timeline-line {
-        bottom: calc(100% - 1rem);
+        bottom: calc(100% - 1.25rem);
       }
     </style>
   </head>
 
   <body class="text-slate-800">
-    <main class="container mx-auto p-4 md:p-8 max-w-2xl">
-      <header class="text-center mb-8">
-        <h1 class="text-3xl md:text-4xl font-bold text-teal-700">个人用药提醒助手</h1>
-        <p id="current-date" class="text-lg text-slate-500 mt-2"></p>
-        <p id="current-time" class="text-4xl font-bold text-slate-700 tracking-wider mt-1"></p>
+    <main class="container mx-auto p-4 md:p-8 max-w-3xl">
+      <header class="text-center mb-10 fade-in">
+        <h1 class="text-3xl md:text-4xl font-bold text-teal-800">个人用药提醒助手</h1>
+        <p id="current-date" class="text-lg text-slate-500 mt-2 font-light"></p>
+        <p id="current-time" class="text-5xl font-bold text-slate-700 tracking-wider mt-1"></p>
       </header>
 
-      <div class="bg-white p-4 rounded-xl shadow-md mb-8">
+      <div class="bg-white p-6 rounded-2xl shadow-lg mb-10 fade-in" style="animation-delay: 100ms">
         <div class="flex justify-between items-center mb-2">
-          <span class="font-semibold">今日服药进度</span>
+          <span class="font-semibold text-slate-700">今日服药进度</span>
           <span id="progress-text" class="font-bold text-teal-600">0 / 11</span>
         </div>
-        <div class="w-full bg-slate-200 rounded-full h-4">
-          <div id="progress-bar" class="bg-teal-500 h-4 rounded-full progress-bar-fill" style="width: 0%"></div>
+        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+          <div id="progress-bar" class="h-3 rounded-full progress-bar-fill" style="width: 0%"></div>
         </div>
-        <div class="text-center mt-4">
+        <div class="text-center mt-6">
           <button
             id="notification-btn"
-            class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+            class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg text-sm flex items-center justify-center mx-auto gap-2"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              class="bi bi-bell-fill"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"
+              />
+            </svg>
             开启精确时间提醒
           </button>
         </div>
       </div>
 
-      <div id="medication-timeline" class="space-y-2">
+      <div id="medication-timeline" class="space-y-4">
         <!-- Timeline items will be generated here -->
       </div>
 
-      <footer class="text-center mt-8">
-        <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline">重置今日记录</button>
+      <footer class="text-center mt-10">
+        <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline transition-colors">
+          重置今日记录
+        </button>
       </footer>
     </main>
 
@@ -179,6 +226,7 @@
 
         const timelineContainer = document.getElementById('medication-timeline')
         const totalDoses = medicationSchedule.length
+        const iconColors = { '🌿': 'bg-emerald-100', '⚙️': 'bg-sky-100', '💧': 'bg-indigo-100', '🩹': 'bg-rose-100' }
 
         function getTodayKey(prefix) {
           const now = new Date()
@@ -199,37 +247,43 @@
             return acc
           }, {})
 
+          let delay = 200
           for (const time in groupedByTime) {
             const meds = groupedByTime[time]
             const timelineItemId = `timeline-${time.replace(':', '')}`
 
             const itemWrapper = document.createElement('div')
             itemWrapper.id = timelineItemId
-            itemWrapper.className = 'timeline-item pt-1 pb-6'
+            itemWrapper.className = 'timeline-item pt-1 pb-4 fade-in'
+            itemWrapper.style.animationDelay = `${delay}ms`
 
             itemWrapper.innerHTML = `
                         <div class="timeline-line"></div>
                         <div class="timeline-dot border-slate-300"></div>
-                        <h3 class="text-xl font-bold ml-1 mb-3">${time}</h3>
-                        <div class="space-y-3">
+                        <h3 class="text-2xl font-bold ml-2 mb-4 text-slate-600">${time}</h3>
+                        <div class="space-y-4">
                             ${meds
                               .map((med) => {
                                 const isTaken = !!takenState[med.id]
                                 return `
-                                <div class="med-card p-4 rounded-lg flex items-center transition-all shadow-sm ${
-                                  isTaken ? 'taken' : 'bg-white'
-                                }">
-                                    <div class="text-3xl mr-4">${med.icon}</div>
-                                    <div class="flex-grow">
-                                        <p class="font-bold med-name">${med.name}</p>
-                                        <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
-                                        <p class="text-slate-600 text-sm mt-1">${med.dose}</p>
-                                    </div>
-                                    <input type="checkbox" data-dose-id="${
-                                      med.id
-                                    }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500" ${
+                                <div class="med-card-wrapper rounded-2xl border-2 border-transparent transition-all duration-300">
+                                  <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg ${
+                                    isTaken ? 'taken' : ''
+                                  }">
+                                      <div class="text-3xl mr-4 w-14 h-14 flex-shrink-0 rounded-full flex items-center justify-center ${
+                                        iconColors[med.icon]
+                                      }">${med.icon}</div>
+                                      <div class="flex-grow">
+                                          <p class="font-bold text-base med-name">${med.name}</p>
+                                          <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
+                                          <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
+                                      </div>
+                                      <input type="checkbox" data-dose-id="${
+                                        med.id
+                                      }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer" ${
                                   isTaken ? 'checked' : ''
                                 }>
+                                  </div>
                                 </div>
                                 `
                               })
@@ -237,9 +291,11 @@
                         </div>
                     `
             timelineContainer.appendChild(itemWrapper)
+            delay += 100
           }
           addEventListeners()
           updateProgress()
+          updateTime() // Call updateTime after rendering to apply highlighting immediately
         }
 
         function addEventListeners() {
@@ -249,14 +305,18 @@
               takenState[doseId] = e.target.checked
               if (!e.target.checked) delete takenState[doseId]
               saveState('medTakenState', takenState)
-              renderMedications()
+              // No full re-render, just update styles for performance
+              const card = e.target.closest('.med-card')
+              card.classList.toggle('taken', e.target.checked)
+              updateProgress()
+              updateTime() // Re-evaluate highlighting
             })
           })
         }
 
         function updateProgress() {
           const takenCount = Object.values(takenState).filter(Boolean).length
-          const progress = (takenCount / totalDoses) * 100
+          const progress = totalDoses > 0 ? (takenCount / totalDoses) * 100 : 0
           document.getElementById('progress-bar').style.width = `${progress}%`
           document.getElementById('progress-text').textContent = `${takenCount} / ${totalDoses}`
         }
@@ -272,33 +332,67 @@
           })
           document.getElementById('current-time').textContent = currentTimeStr
 
-          // Highlight next due medication
           const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
           let nextMedTime = null
 
-          for (const med of medicationSchedule) {
-            if (med.time > nowHHMM && !takenState[med.id]) {
-              nextMedTime = med.time
+          // Find the first untaken time slot that is in the future
+          const sortedTimes = Object.keys(
+            medicationSchedule.reduce((acc, med) => {
+              acc[med.time] = true
+              return acc
+            }, {})
+          ).sort()
+          for (const time of sortedTimes) {
+            const medsInSlot = medicationSchedule.filter((m) => m.time === time)
+            const allTakenInSlot = medsInSlot.every((m) => takenState[m.id])
+            if (time >= nowHHMM && !allTakenInSlot) {
+              nextMedTime = time
               break
             }
           }
+          // If all future slots are taken, check past slots for untaken meds
+          if (!nextMedTime) {
+            for (const time of sortedTimes.reverse()) {
+              const medsInSlot = medicationSchedule.filter((m) => m.time === time)
+              const allTakenInSlot = medsInSlot.every((m) => takenState[m.id])
+              if (!allTakenInSlot) {
+                nextMedTime = time
+                break
+              }
+            }
+          }
 
-          document.querySelectorAll('.timeline-item').forEach((el) => el.classList.remove('next-up'))
+          document.querySelectorAll('.timeline-item').forEach((el) => {
+            el.classList.remove('next-up')
+            el.querySelector('.timeline-dot').classList.remove('border-yellow-400', 'bg-yellow-50')
+          })
+
           if (nextMedTime) {
             const nextItemId = `timeline-${nextMedTime.replace(':', '')}`
             const nextItem = document.getElementById(nextItemId)
-            if (nextItem) nextItem.classList.add('next-up')
+            if (nextItem) {
+              nextItem.classList.add('next-up')
+              nextItem.querySelector('.timeline-dot').classList.add('border-yellow-400', 'bg-yellow-50')
+            }
           }
         }
 
         const notificationBtn = document.getElementById('notification-btn')
         notificationBtn.addEventListener('click', () => {
+          if (Notification.permission === 'granted') {
+            alert('提醒功能已经开启。')
+            return
+          }
           Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
               alert('浏览器提醒已开启！将会在设定的时间点精确提醒您。')
-              notificationBtn.textContent = '提醒功能已开启'
-              notificationBtn.disabled = true
-              notificationBtn.classList.add('opacity-50', 'cursor-not-allowed')
+              notificationBtn.innerHTML = `
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell-slash-fill" viewBox="0 0 16 16">
+                            <path d="M5.161 14.016A2 2 0 0 0 8 16a2 2 0 0 0 2.83-1.985l-6.67-6.67A5 5 0 0 0 3 6c0-.27.028-.533.08-.786zM11 5.183a5 5 0 0 0-4.437-4.087A1 1 0 0 0 4.995.1a1 1 0 0 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h1.645l10.5-10.5zM2.71 1.056a1 1 0 0 1 1.414 0L14.94 11.828a1 1 0 0 1-1.414 1.414L2.71 2.47a1 1 0 0 1 0-1.414"/>
+                          </svg>
+                          提醒功能已开启`
+              notificationBtn.classList.replace('bg-yellow-400', 'bg-slate-300')
+              notificationBtn.classList.replace('text-yellow-900', 'text-slate-600')
               new Notification('测试提醒', { body: '提醒功能设置成功！' })
             } else {
               alert('您已阻止浏览器提醒。如需开启，请在浏览器设置中修改。')
@@ -336,9 +430,8 @@
 
         // Initial setup
         renderMedications()
-        updateTime()
         setInterval(updateTime, 1000)
-        setInterval(scheduleNotifications, 30000) // Check for notifications every 30 seconds
+        setInterval(scheduleNotifications, 30000)
       })
     </script>
   </body>
