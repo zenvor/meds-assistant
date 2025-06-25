@@ -11,10 +11,10 @@
     <!-- Chosen Palette: Teal, Slate, Amber for a clean, calming, and functional health app feel. -->
     <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day (Morning, Noon, Evening) using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
     <!-- Visualization & Content Choices: 
-        - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into three columns (Morning/Noon/Evening). Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
+        - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into a single timeline. Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
         - Progress Tracking: Goal: Motivate. Method: A dynamic HTML/CSS progress bar. Interaction: Updates automatically as doses are checked off. Justification: Provides positive reinforcement and a clear overview of daily completion.
-        - Time Context: Goal: Orient. Method: A live digital clock and dynamic styling (a glowing border) on the current time slot's section. Justification: Immediately draws the user's attention to what needs to be done *now*.
-        - Notifications: Goal: Remind. Method: A button to enable browser Notifications API. Interaction: User grants permission. Justification: This fulfills the core "reminder" request in the most effective way possible for a web app.
+        - Time Context: Goal: Orient. Method: A live digital clock and dynamic styling (a glowing border) on the next due medication item. Justification: Immediately draws the user's attention to what's next.
+        - Notifications: Goal: Remind. Method: A button to enable browser Notifications API. Interaction: User grants permission and notifications fire at specific times. Justification: This fulfills the core "reminder" request in the most effective way possible for a web app.
         - Library/Method: Vanilla JS for all logic (time, state management, rendering), Tailwind CSS for styling. No charts needed.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
@@ -22,33 +22,56 @@
       body {
         font-family: 'Noto Sans SC', sans-serif;
         background-color: #f1f5f9;
-        /* slate-100 */
       }
-
-      .time-slot.active {
-        border-color: #0d9488;
-        /* teal-600 */
-        box-shadow: 0 0 15px rgba(13, 148, 136, 0.2);
+      .timeline-item.next-up {
+        border-color: #f59e0b; /* amber-500 */
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
       }
-
       .med-card.taken {
         background-color: #f8fafc;
-        /* slate-50 */
         opacity: 0.6;
       }
-
-      .med-card.taken .med-name {
+      .med-card.taken .med-name,
+      .med-card.taken .med-timing {
         text-decoration: line-through;
       }
-
       .progress-bar-fill {
         transition: width 0.5s ease-in-out;
+      }
+      .timeline-item {
+        position: relative;
+        padding-left: 2.5rem; /* Space for timeline line and dot */
+      }
+      .timeline-dot {
+        position: absolute;
+        left: -0.5rem;
+        top: 0;
+        height: 1.25rem;
+        width: 1.25rem;
+        background-color: white;
+        border-width: 4px;
+        border-radius: 9999px;
+        z-index: 10;
+      }
+      .timeline-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #e2e8f0; /* slate-200 */
+      }
+      .timeline-item:first-child .timeline-line {
+        top: 1rem;
+      }
+      .timeline-item:last-child .timeline-line {
+        bottom: calc(100% - 1rem);
       }
     </style>
   </head>
 
   <body class="text-slate-800">
-    <main class="container mx-auto p-4 md:p-8 max-w-4xl">
+    <main class="container mx-auto p-4 md:p-8 max-w-2xl">
       <header class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold text-teal-700">个人用药提醒助手</h1>
         <p id="current-date" class="text-lg text-slate-500 mt-2"></p>
@@ -68,39 +91,15 @@
             id="notification-btn"
             class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
           >
-            开启浏览器提醒
+            开启精确时间提醒
           </button>
         </div>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-6">
-        <!-- Morning Slot -->
-        <section
-          id="morning"
-          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
-        >
-          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">☀️ 早上</h2>
-          <div id="morning-meds" class="space-y-4"></div>
-        </section>
-
-        <!-- Noon Slot -->
-        <section
-          id="noon"
-          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
-        >
-          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">🕛 中午</h2>
-          <div id="noon-meds" class="space-y-4"></div>
-        </section>
-
-        <!-- Evening Slot -->
-        <section
-          id="evening"
-          class="time-slot bg-white p-4 rounded-2xl shadow-lg border-2 border-transparent transition-all"
-        >
-          <h2 class="text-2xl font-bold text-center mb-4 border-b pb-2">🌙 晚上</h2>
-          <div id="evening-meds" class="space-y-4"></div>
-        </section>
+      <div id="medication-timeline" class="space-y-2">
+        <!-- Timeline items will be generated here -->
       </div>
+
       <footer class="text-center mt-8">
         <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline">重置今日记录</button>
       </footer>
@@ -109,88 +108,136 @@
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const medicationSchedule = [
+          { id: 'houtou_am', name: '猴头健胃灵片', dose: '4片', time: '07:00', icon: '🌿', timing: '饭前服用' },
           {
-            id: 'careprazen',
-            name: '盐酸凯普拉生片',
-            dose: '2片',
-            times: ['morning', 'evening'],
-            icon: '💧',
-            timing: '饭前饭后均可',
-          },
-          {
-            id: 'mosapride',
+            id: 'mosapride_am',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
-            times: ['morning', 'noon', 'evening'],
+            time: '07:00',
             icon: '⚙️',
             timing: '饭前半小时服用',
           },
           {
-            id: 'sucralfate',
+            id: 'careprazen_am',
+            name: '盐酸凯普拉生片',
+            dose: '2片',
+            time: '07:30',
+            icon: '💧',
+            timing: '饭前饭后均可',
+          },
+          {
+            id: 'sucralfate_mid_am',
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
-            times: ['morning', 'noon', 'evening'],
+            time: '10:00',
             icon: '🩹',
             timing: '两餐之间服用',
           },
+          { id: 'houtou_noon', name: '猴头健胃灵片', dose: '4片', time: '12:00', icon: '🌿', timing: '饭前服用' },
           {
-            id: 'houtou',
-            name: '猴头健胃灵片',
-            dose: '4片',
-            times: ['morning', 'noon', 'evening'],
-            icon: '🌿',
-            timing: '饭前服用',
+            id: 'mosapride_noon',
+            name: '枸橼酸莫沙必利片',
+            dose: '1片',
+            time: '12:00',
+            icon: '⚙️',
+            timing: '饭前半小时服用',
+          },
+          {
+            id: 'sucralfate_mid_pm',
+            name: '硫糖铝混悬凝胶',
+            dose: '1袋',
+            time: '15:00',
+            icon: '🩹',
+            timing: '两餐之间服用',
+          },
+          { id: 'houtou_pm', name: '猴头健胃灵片', dose: '4片', time: '18:00', icon: '🌿', timing: '饭前服用' },
+          {
+            id: 'mosapride_pm',
+            name: '枸橼酸莫沙必利片',
+            dose: '1片',
+            time: '18:00',
+            icon: '⚙️',
+            timing: '饭前半小时服用',
+          },
+          {
+            id: 'careprazen_pm',
+            name: '盐酸凯普拉生片',
+            dose: '2片',
+            time: '18:30',
+            icon: '💧',
+            timing: '饭前饭后均可',
+          },
+          {
+            id: 'sucralfate_pm',
+            name: '硫糖铝混悬凝胶',
+            dose: '1袋',
+            time: '21:00',
+            icon: '🩹',
+            timing: '两餐之间服用',
           },
         ]
 
-        const timeSlots = {
-          morning: { start: 6, end: 10, container: document.getElementById('morning-meds') },
-          noon: { start: 11, end: 15, container: document.getElementById('noon-meds') },
-          evening: { start: 17, end: 21, container: document.getElementById('evening-meds') },
-        }
+        const timelineContainer = document.getElementById('medication-timeline')
+        const totalDoses = medicationSchedule.length
 
-        const totalDoses = medicationSchedule.reduce((acc, med) => acc + med.times.length, 0)
-
-        function getTodayKey() {
+        function getTodayKey(prefix) {
           const now = new Date()
-          return `medTracker-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
+          return `${prefix}-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
         }
 
-        let takenState = JSON.parse(localStorage.getItem(getTodayKey())) || {}
+        let takenState = JSON.parse(localStorage.getItem(getTodayKey('medTakenState'))) || {}
+        let notifiedState = JSON.parse(localStorage.getItem(getTodayKey('medNotifiedState'))) || {}
 
-        function saveState() {
-          localStorage.setItem(getTodayKey(), JSON.stringify(takenState))
+        function saveState(key, state) {
+          localStorage.setItem(getTodayKey(key), JSON.stringify(state))
         }
 
         function renderMedications() {
-          Object.values(timeSlots).forEach((slot) => (slot.container.innerHTML = ''))
+          timelineContainer.innerHTML = ''
+          const groupedByTime = medicationSchedule.reduce((acc, med) => {
+            ;(acc[med.time] = acc[med.time] || []).push(med)
+            return acc
+          }, {})
 
-          medicationSchedule.forEach((med) => {
-            med.times.forEach((time) => {
-              const slot = timeSlots[time]
-              if (slot) {
-                const doseId = `${med.id}-${time}`
-                const isTaken = !!takenState[doseId]
+          for (const time in groupedByTime) {
+            const meds = groupedByTime[time]
+            const timelineItemId = `timeline-${time.replace(':', '')}`
 
-                const card = document.createElement('div')
-                card.className = `med-card p-4 rounded-lg flex items-center transition-all ${
-                  isTaken ? 'taken' : 'bg-slate-100'
-                }`
-                card.innerHTML = `
-                            <div class="text-3xl mr-4">${med.icon}</div>
-                            <div class="flex-grow">
-                                <p class="font-bold med-name">${med.name}</p>
-                                <p class="text-sm text-amber-700 font-semibold">${med.timing}</p>
-                                <p class="text-slate-600 text-sm mt-1">${med.dose}</p>
-                            </div>
-                            <input type="checkbox" data-dose-id="${doseId}" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500" ${
-                  isTaken ? 'checked' : ''
-                }>
-                        `
-                slot.container.appendChild(card)
-              }
-            })
-          })
+            const itemWrapper = document.createElement('div')
+            itemWrapper.id = timelineItemId
+            itemWrapper.className = 'timeline-item pt-1 pb-6'
+
+            itemWrapper.innerHTML = `
+                        <div class="timeline-line"></div>
+                        <div class="timeline-dot border-slate-300"></div>
+                        <h3 class="text-xl font-bold ml-1 mb-3">${time}</h3>
+                        <div class="space-y-3">
+                            ${meds
+                              .map((med) => {
+                                const isTaken = !!takenState[med.id]
+                                return `
+                                <div class="med-card p-4 rounded-lg flex items-center transition-all shadow-sm ${
+                                  isTaken ? 'taken' : 'bg-white'
+                                }">
+                                    <div class="text-3xl mr-4">${med.icon}</div>
+                                    <div class="flex-grow">
+                                        <p class="font-bold med-name">${med.name}</p>
+                                        <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
+                                        <p class="text-slate-600 text-sm mt-1">${med.dose}</p>
+                                    </div>
+                                    <input type="checkbox" data-dose-id="${
+                                      med.id
+                                    }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500" ${
+                                  isTaken ? 'checked' : ''
+                                }>
+                                </div>
+                                `
+                              })
+                              .join('')}
+                        </div>
+                    `
+            timelineContainer.appendChild(itemWrapper)
+          }
           addEventListeners()
           updateProgress()
         }
@@ -199,19 +246,16 @@
           document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
             checkbox.addEventListener('change', (e) => {
               const doseId = e.target.dataset.doseId
-              if (e.target.checked) {
-                takenState[doseId] = true
-              } else {
-                delete takenState[doseId]
-              }
-              saveState()
+              takenState[doseId] = e.target.checked
+              if (!e.target.checked) delete takenState[doseId]
+              saveState('medTakenState', takenState)
               renderMedications()
             })
           })
         }
 
         function updateProgress() {
-          const takenCount = Object.keys(takenState).length
+          const takenCount = Object.values(takenState).filter(Boolean).length
           const progress = (takenCount / totalDoses) * 100
           document.getElementById('progress-bar').style.width = `${progress}%`
           document.getElementById('progress-text').textContent = `${takenCount} / ${totalDoses}`
@@ -221,21 +265,29 @@
           const now = new Date()
           const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
           document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', dateOptions)
-          document.getElementById('current-time').textContent = now.toLocaleTimeString('zh-CN', {
+          const currentTimeStr = now.toLocaleTimeString('zh-CN', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
           })
+          document.getElementById('current-time').textContent = currentTimeStr
 
-          const currentHour = now.getHours()
-          document.querySelectorAll('.time-slot').forEach((el) => el.classList.remove('active'))
+          // Highlight next due medication
+          const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          let nextMedTime = null
 
-          if (currentHour >= timeSlots.morning.start && currentHour <= timeSlots.morning.end) {
-            document.getElementById('morning').classList.add('active')
-          } else if (currentHour >= timeSlots.noon.start && currentHour <= timeSlots.noon.end) {
-            document.getElementById('noon').classList.add('active')
-          } else if (currentHour >= timeSlots.evening.start && currentHour <= timeSlots.evening.end) {
-            document.getElementById('evening').classList.add('active')
+          for (const med of medicationSchedule) {
+            if (med.time > nowHHMM && !takenState[med.id]) {
+              nextMedTime = med.time
+              break
+            }
+          }
+
+          document.querySelectorAll('.timeline-item').forEach((el) => el.classList.remove('next-up'))
+          if (nextMedTime) {
+            const nextItemId = `timeline-${nextMedTime.replace(':', '')}`
+            const nextItem = document.getElementById(nextItemId)
+            if (nextItem) nextItem.classList.add('next-up')
           }
         }
 
@@ -243,10 +295,11 @@
         notificationBtn.addEventListener('click', () => {
           Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
-              alert('浏览器提醒已开启！将会在服药时间段开始时提醒您。')
+              alert('浏览器提醒已开启！将会在设定的时间点精确提醒您。')
               notificationBtn.textContent = '提醒功能已开启'
               notificationBtn.disabled = true
               notificationBtn.classList.add('opacity-50', 'cursor-not-allowed')
+              new Notification('测试提醒', { body: '提醒功能设置成功！' })
             } else {
               alert('您已阻止浏览器提醒。如需开启，请在浏览器设置中修改。')
             }
@@ -254,49 +307,38 @@
         })
 
         function scheduleNotifications() {
-          setInterval(() => {
-            const now = new Date()
-            const minutes = now.getMinutes()
-            if (minutes === 0) {
-              const currentHour = now.getHours()
-              let medsToTakeNow = []
-              let slotName = ''
+          const now = new Date()
+          const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
-              Object.entries(timeSlots).forEach(([key, slot]) => {
-                if (currentHour === slot.start) {
-                  medicationSchedule.forEach((med) => {
-                    if (med.times.includes(key) && !takenState[`${med.id}-${key}`]) {
-                      medsToTakeNow.push(`${med.name} (${med.timing})`)
-                    }
-                  })
-                  if (key === 'morning') slotName = '早上'
-                  if (key === 'noon') slotName = '中午'
-                  if (key === 'evening') slotName = '晚上'
-                }
-              })
-
-              if (medsToTakeNow.length > 0 && Notification.permission === 'granted') {
-                new Notification(`该吃${slotName}的药了！`, {
-                  body: '请服用：\n' + medsToTakeNow.join('\n'),
-                  icon: './favicon.ico',
+          medicationSchedule.forEach((med) => {
+            if (med.time === nowHHMM && !takenState[med.id] && !notifiedState[med.id]) {
+              if (Notification.permission === 'granted') {
+                new Notification(`该吃药了: ${med.name}`, {
+                  body: `请服用 ${med.dose} (${med.timing})`,
+                  icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${med.icon}</text></svg>',
                 })
+                notifiedState[med.id] = true
+                saveState('medNotifiedState', notifiedState)
               }
             }
-          }, 60000)
+          })
         }
 
         document.getElementById('reset-btn').addEventListener('click', () => {
-          if (confirm('您确定要清除今天所有的服药记录吗？')) {
+          if (confirm('您确定要清除今天所有的服药和提醒记录吗？')) {
             takenState = {}
-            saveState()
+            notifiedState = {}
+            saveState('medTakenState', takenState)
+            saveState('medNotifiedState', notifiedState)
             renderMedications()
           }
         })
 
+        // Initial setup
         renderMedications()
         updateTime()
-        scheduleNotifications()
         setInterval(updateTime, 1000)
+        setInterval(scheduleNotifications, 30000) // Check for notifications every 30 seconds
       })
     </script>
   </body>
