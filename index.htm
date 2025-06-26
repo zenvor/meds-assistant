@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
     <!-- Chosen Palette: Refined Teal, Slate, Soft Gold for a calming, premium health app feel. -->
-    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
+    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day (Morning, Noon, Evening) using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
     <!-- Visualization & Content Choices: 
         - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into a single timeline. Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
         - Progress Tracking: Goal: Motivate. Method: A dynamic HTML/CSS progress bar. Interaction: Updates automatically as doses are checked off. Justification: Provides positive reinforcement and a clear overview of daily completion.
@@ -53,11 +53,10 @@
         animation: slideInDown 0.4s ease-out forwards;
       }
 
-      .timeline-item.next-up .med-card-wrapper {
+      .time-slot.next-up {
         border-color: #facc15;
         box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
       }
-      /* Removed hover effect as requested */
       .med-card {
         transition: all 0.3s ease;
       }
@@ -66,40 +65,7 @@
         transition: width 0.5s ease-in-out;
         background-image: linear-gradient(to right, #2dd4bf, #0d9488);
       }
-      .timeline-item {
-        position: relative;
-        padding-left: 2rem;
-        padding-bottom: 1rem;
-      }
-      .timeline-dot {
-        position: absolute;
-        left: -0.5rem;
-        top: 0.25rem;
-        height: 1.25rem;
-        width: 1.25rem;
-        background-color: #f0f4f8;
-        border-width: 3px;
-        border-radius: 9999px;
-        z-index: 10;
-        transition: all 0.3s ease;
-      }
-      .timeline-item.next-up .timeline-dot {
-        border-color: #facc15;
-        background-color: #fefce8;
-      }
-      .timeline-line {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background-color: #e2e8f0;
-      }
-      .timeline-item:last-of-type .timeline-line {
-        display: none;
-      }
 
-      /* Accordion animation fix */
       #taken-meds-content {
         display: grid;
         grid-template-rows: 0fr;
@@ -159,7 +125,7 @@
                 d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"
               />
             </svg>
-            开启精确时间提醒
+            开启时段提醒
           </button>
         </div>
       </div>
@@ -195,9 +161,8 @@
         </div>
       </div>
 
-      <!-- Upcoming Meds Timeline -->
-      <div id="medication-timeline" class="space-y-2">
-        <!-- Timeline items will be generated here -->
+      <div id="medication-slots" class="space-y-8">
+        <!-- Medication slots will be generated here -->
       </div>
 
       <footer class="text-center mt-12">
@@ -213,85 +178,99 @@
           houtou: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.03 15.41c-1.3-.47-2.39-1.57-2.86-2.87-.13-.37.28-.66.6-.49 1.49.78 3.21.78 4.7 0 .32-.17.73.12.6.49-.47 1.3-1.56 2.4-2.86 2.87-.2.07-.46.07-.68 0zM7.5 11C6.67 11 6 10.33 6 9.5S6.67 8 7.5 8s1.5.67 1.5 1.5S8.33 11 7.5 11zm9 0c-.83 0-1.5-.67-1.5-1.5S15.67 8 16.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" fill="#34d399"/></svg>`,
           mosapride: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.98 12.63c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 0015 11.93c0 .25.05.48.14.7L12 14.5l-3.14-2.17c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 004 11.93c0 .25.05.48.14.7L12 20l7.98-7.37zM12 4L4 9.37V20h16V9.37L12 4z" fill="#38bdf8"/></svg>`,
           careprazen: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17.5c-1.96 0-3.73-.91-4.88-2.34a.75.75 0 011.06-1.06c.82.82 2.05 1.32 3.39 1.32s2.57-.5 3.39-1.32a.75.75 0 111.06 1.06A6.97 6.97 0 0112 19.5z" fill="#818cf8"/></svg>`,
-          sucralfate: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 4H7c-1.66 0-3 1.34-3 3v10c0 1.66 1.34 3 3 3h10c1.66 0 3-1.34 3-3V7c0-1.66-1.34-3-3-3zm-2 10h-2v2h-2v-2H9v-2h2V9h2v2h2v2z" fill="#f472b6"/></svg>`,
+          sucralfate: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 2H6.5C5.67 2 5 2.67 5 3.5v17c0 .83.67 1.5 1.5 1.5h11c.83 0 1.5-.67 1.5-1.5v-17c0-.83-.67-1.5-1.5-1.5zM17 4h-2V3h2v1z" fill-rule="evenodd" clip-rule="evenodd" fill="#f472b6"/></svg>`,
         }
         const medicationSchedule = [
-          { id: 'houtou_am', name: '猴头健胃灵片', dose: '4片', time: '07:00', iconKey: 'houtou', timing: '饭前服用' },
+          {
+            id: 'houtou_am',
+            name: '猴头健胃灵片',
+            dose: '4片',
+            slot: 'morning',
+            iconKey: 'houtou',
+            timing: '饭前服用',
+          },
           {
             id: 'mosapride_am',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
-            time: '07:00',
+            slot: 'morning',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
+          },
+          {
+            id: 'sucralfate_am',
+            name: '硫糖铝混悬凝胶',
+            dose: '1袋',
+            slot: 'morning',
+            iconKey: 'sucralfate',
+            timing: '饭前30-60分钟服用',
           },
           {
             id: 'careprazen_am',
             name: '盐酸凯普拉生片',
             dose: '2片',
-            time: '07:30',
+            slot: 'morning',
             iconKey: 'careprazen',
             timing: '饭前饭后均可',
           },
-          {
-            id: 'sucralfate_mid_am',
-            name: '硫糖铝混悬凝胶',
-            dose: '1袋',
-            time: '10:00',
-            iconKey: 'sucralfate',
-            timing: '两餐之间服用',
-          },
-          {
-            id: 'houtou_noon',
-            name: '猴头健胃灵片',
-            dose: '4片',
-            time: '12:00',
-            iconKey: 'houtou',
-            timing: '饭前服用',
-          },
+
+          { id: 'houtou_noon', name: '猴头健胃灵片', dose: '4片', slot: 'noon', iconKey: 'houtou', timing: '饭前服用' },
           {
             id: 'mosapride_noon',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
-            time: '12:00',
+            slot: 'noon',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
           {
-            id: 'sucralfate_mid_pm',
+            id: 'sucralfate_noon',
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
-            time: '15:00',
+            slot: 'noon',
             iconKey: 'sucralfate',
-            timing: '两餐之间服用',
+            timing: '饭前30-60分钟服用',
           },
-          { id: 'houtou_pm', name: '猴头健胃灵片', dose: '4片', time: '18:00', iconKey: 'houtou', timing: '饭前服用' },
+
+          {
+            id: 'houtou_pm',
+            name: '猴头健胃灵片',
+            dose: '4片',
+            slot: 'evening',
+            iconKey: 'houtou',
+            timing: '饭前服用',
+          },
           {
             id: 'mosapride_pm',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
-            time: '18:00',
+            slot: 'evening',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
-          },
-          {
-            id: 'careprazen_pm',
-            name: '盐酸凯普拉生片',
-            dose: '2片',
-            time: '18:30',
-            iconKey: 'careprazen',
-            timing: '饭前饭后均可',
           },
           {
             id: 'sucralfate_pm',
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
-            time: '21:00',
+            slot: 'evening',
             iconKey: 'sucralfate',
-            timing: '两餐之间服用',
+            timing: '饭前30-60分钟服用',
+          },
+          {
+            id: 'careprazen_pm',
+            name: '盐酸凯普拉生片',
+            dose: '2片',
+            slot: 'evening',
+            iconKey: 'careprazen',
+            timing: '饭前饭后均可',
           },
         ]
-        const timelineContainer = document.getElementById('medication-timeline')
+        const slotsConfig = {
+          morning: { label: '早上', icon: '☀️', startHour: 6, endHour: 11 },
+          noon: { label: '中午', icon: '🕛', startHour: 11, endHour: 17 },
+          evening: { label: '晚上', icon: '🌙', startHour: 17, endHour: 23 },
+        }
+        const slotsContainer = document.getElementById('medication-slots')
         const takenContainer = document.getElementById('taken-meds-container')
         const takenContent = document.getElementById('taken-meds-content')
         const accordionHeader = document.getElementById('taken-meds-header')
@@ -315,63 +294,63 @@
         }
 
         function renderMedications() {
-          timelineContainer.innerHTML = ''
+          slotsContainer.innerHTML = ''
           takenContainer.innerHTML = ''
-          const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
+
           const takenMeds = medicationSchedule.filter((med) => takenState[med.id])
 
-          const groupedByTime = upcomingMeds.reduce((acc, med) => {
-            ;(acc[med.time] = acc[med.time] || []).push(med)
-            return acc
-          }, {})
+          // Render upcoming medication slots
+          let animationDelay = 200
+          Object.keys(slotsConfig).forEach((slotKey) => {
+            const upcomingInSlot = medicationSchedule.filter((med) => med.slot === slotKey && !takenState[med.id])
+            if (upcomingInSlot.length === 0) return
 
-          let delay = 200
-          if (Object.keys(groupedByTime).length === 0) {
-            timelineContainer.innerHTML = `<div class="text-center p-10 bg-white rounded-2xl shadow-lg"><p class="text-xl text-teal-600 font-semibold">🎉 恭喜！今日药物已全部服用完毕！</p></div>`
-          } else {
-            for (const time in groupedByTime) {
-              const meds = groupedByTime[time]
-              const itemWrapper = document.createElement('div')
-              itemWrapper.id = `timeline-${time.replace(':', '')}`
-              itemWrapper.className = 'timeline-item fade-in'
-              itemWrapper.style.animationDelay = `${delay}ms`
-              itemWrapper.innerHTML = `
-                        <div class="timeline-line"></div>
-                        <div class="timeline-dot border-slate-300"></div>
-                        <h3 class="text-xl font-bold ml-1 mb-3 text-slate-500">${time}</h3>
-                        <div class="space-y-4">
-                            ${meds
-                              .map(
-                                (med) => `
-                            <div class="med-card-wrapper rounded-2xl border-2 border-transparent transition-all duration-300">
-                              <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg">
-                                  <div class="text-3xl mr-4 w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center ${
-                                    iconColors[med.iconKey]
-                                  }">${svgIcons[med.iconKey]}</div>
-                                  <div class="flex-grow">
-                                      <p class="font-bold text-base med-name">${med.name}</p>
-                                      <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
-                                      <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
-                                  </div>
-                                  <input type="checkbox" data-dose-id="${
-                                    med.id
-                                  }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer">
-                              </div>
-                            </div>`
-                              )
-                              .join('')}
-                        </div>`
-              timelineContainer.appendChild(itemWrapper)
-              delay += 100
-            }
+            const config = slotsConfig[slotKey]
+            const slotWrapper = document.createElement('div')
+            slotWrapper.id = `slot-${slotKey}`
+            slotWrapper.className =
+              'time-slot p-4 rounded-2xl border-2 border-transparent transition-all duration-300 fade-in'
+            slotWrapper.style.animationDelay = `${animationDelay}ms`
+            animationDelay += 100
+
+            let cardsHtml = upcomingInSlot
+              .map(
+                (med) => `
+                    <div class="med-card-wrapper">
+                      <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg">
+                          <div class="mr-4 w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center ${
+                            iconColors[med.iconKey]
+                          }">${svgIcons[med.iconKey]}</div>
+                          <div class="flex-grow">
+                              <p class="font-bold text-base med-name">${med.name}</p>
+                              <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
+                              <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
+                          </div>
+                          <input type="checkbox" data-dose-id="${
+                            med.id
+                          }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer">
+                      </div>
+                    </div>`
+              )
+              .join('')
+
+            slotWrapper.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4 text-slate-600">${config.icon} ${config.label}</h2>
+                    <div class="space-y-4">${cardsHtml}</div>
+                `
+            slotsContainer.appendChild(slotWrapper)
+          })
+          if (slotsContainer.innerHTML === '') {
+            slotsContainer.innerHTML = `<div class="text-center p-10 bg-white rounded-2xl shadow-lg"><p class="text-xl text-teal-600 font-semibold">🎉 恭喜！今日药物已全部服用完毕！</p></div>`
           }
 
+          // Render taken medications
           document.getElementById('taken-summary').textContent = `${takenMeds.length} / ${totalDoses} 种`
           if (takenMeds.length === 0) {
             takenContainer.innerHTML = `<p class="text-slate-400 text-center py-4">暂无已服用记录</p>`
           } else {
             takenMeds
-              .sort((a, b) => a.time.localeCompare(b.time))
+              .sort((a, b) => a.slot.localeCompare(b.slot))
               .forEach((med) => {
                 const takenCard = document.createElement('div')
                 takenCard.className = 'slide-in-down bg-slate-100 p-3 rounded-lg flex items-center gap-3 text-sm'
@@ -381,7 +360,7 @@
                         }">${svgIcons[med.iconKey]}</div>
                         <div class="flex-grow">
                             <p class="font-semibold text-slate-600">${med.name}</p>
-                            <p class="text-xs text-slate-500">${med.time} - ${med.dose}</p>
+                            <p class="text-xs text-slate-500">${slotsConfig[med.slot].label} - ${med.dose}</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill text-teal-500 flex-shrink-0" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`
                 takenContainer.appendChild(takenCard)
@@ -431,25 +410,27 @@
             second: '2-digit',
           })
 
-          const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-          let nextMedTime = null
-          const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
-          const sortedTimes = [...new Set(upcomingMeds.map((m) => m.time))].sort()
-          for (const time of sortedTimes) {
-            if (time >= nowHHMM) {
-              nextMedTime = time
+          const currentHour = now.getHours()
+          let nextSlotKey = null
+
+          const slotKeys = ['morning', 'noon', 'evening']
+          for (const key of slotKeys) {
+            const upcomingInSlot = medicationSchedule.filter((med) => med.slot === key && !takenState[med.id])
+            if (upcomingInSlot.length > 0 && currentHour < slotsConfig[key].endHour) {
+              nextSlotKey = key
               break
             }
           }
-          if (!nextMedTime && sortedTimes.length > 0) {
-            nextMedTime = sortedTimes[0]
+          if (!nextSlotKey) {
+            const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
+            if (upcomingMeds.length > 0) nextSlotKey = upcomingMeds[0].slot
           }
 
-          document.querySelectorAll('.timeline-item').forEach((el) => {
+          document.querySelectorAll('.time-slot').forEach((el) => {
             el.classList.remove('next-up')
           })
-          if (nextMedTime) {
-            const nextItem = document.getElementById(`timeline-${nextMedTime.replace(':', '')}`)
+          if (nextSlotKey) {
+            const nextItem = document.getElementById(`slot-${nextSlotKey}`)
             if (nextItem) {
               nextItem.classList.add('next-up')
             }
@@ -476,16 +457,25 @@
 
         function scheduleNotifications() {
           const now = new Date()
-          const nowHHMM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-          medicationSchedule.forEach((med) => {
-            if (med.time === nowHHMM && !takenState[med.id] && !notifiedState[med.id]) {
-              if (Notification.permission === 'granted') {
-                new Notification(`该吃药了: ${med.name}`, { body: `请服用 ${med.dose} (${med.timing})` })
-                notifiedState[med.id] = true
-                saveState('medNotifiedState', notifiedState)
+          const currentHour = now.getHours()
+          const currentMinute = now.getMinutes()
+
+          if (currentMinute === 0) {
+            // Check on the hour
+            Object.keys(slotsConfig).forEach((key) => {
+              const slot = slotsConfig[key]
+              if (currentHour === slot.startHour && !notifiedState[key]) {
+                const medsInSlot = medicationSchedule.filter((med) => med.slot === key && !takenState[med.id])
+                if (medsInSlot.length > 0 && Notification.permission === 'granted') {
+                  new Notification(`该服用${slot.label}的药了！`, {
+                    body: `您有 ${medsInSlot.length} 种药物需要服用。`,
+                  })
+                  notifiedState[key] = true
+                  saveState('medNotifiedState', notifiedState)
+                }
               }
-            }
-          })
+            })
+          }
         }
 
         document.getElementById('reset-btn').addEventListener('click', () => {
@@ -500,7 +490,7 @@
 
         renderMedications()
         setInterval(updateTime, 1000)
-        setInterval(scheduleNotifications, 30000)
+        setInterval(scheduleNotifications, 60000) // Check every minute
       })
     </script>
   </body>
