@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>您的个人用药提醒助手 (精致版)</title>
+    <title>您的个人用药提醒助手 (Notion 版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,20 +11,11 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Chosen Palette: Refined Teal, Slate, Soft Gold for a calming, premium health app feel. -->
-    <!-- Application Structure Plan: A task-oriented single-page application focused on one core function: medication tracking. The UI is structured chronologically by time of day (Morning, Noon, Evening) using a card-based layout. This is highly intuitive for a daily schedule. Key interactions include checkboxes to mark doses as taken, which provides immediate visual feedback and updates a progress bar. State is persistent via localStorage, so progress isn't lost. A prominent clock and dynamic highlighting of the current time slot keep the user oriented. The design prioritizes clarity, ease of use, and providing a sense of control and accomplishment to encourage adherence. -->
-    <!-- Visualization & Content Choices: 
-        - Schedule Display: Goal: Inform/Action. Method: Interactive HTML cards organized into a single timeline. Interaction: Checkboxes trigger state changes and visual updates (graying out). Justification: A checklist is the most direct and universally understood interface for tracking tasks.
-        - Progress Tracking: Goal: Motivate. Method: A dynamic HTML/CSS progress bar. Interaction: Updates automatically as doses are checked off. Justification: Provides positive reinforcement and a clear overview of daily completion.
-        - Time Context: Goal: Orient. Method: A live digital clock and dynamic styling (a glowing border) on the next due medication item. Justification: Immediately draws the user's attention to what's next.
-        - Notifications: Goal: Remind. Method: A button to enable browser Notifications API. Interaction: User grants permission and notifications fire at specific times. Justification: This fulfills the core "reminder" request in the most effective way possible for a web app.
-        - Library/Method: Vanilla JS for all logic (time, state management, rendering), Tailwind CSS for styling. No charts needed.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
       body {
         font-family: 'Noto Sans SC', sans-serif;
-        background-color: #f0f4f8;
+        background-color: #f7f7f5; /* Notion-like off-white */
+        color: #37352f; /* Notion-like text color */
       }
       @keyframes fadeIn {
         from {
@@ -36,40 +27,43 @@
           transform: translateY(0);
         }
       }
-      @keyframes slideInDown {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
       .fade-in {
         animation: fadeIn 0.5s ease-out forwards;
       }
-      .slide-in-down {
-        animation: slideInDown 0.4s ease-out forwards;
+
+      .tab-button {
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+      }
+      .tab-button.active {
+        color: #37352f;
+        border-bottom-color: #37352f;
+      }
+      .tab-button:not(.active) {
+        color: #9b9a97;
+      }
+      .tab-panel {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+      .tab-panel.active {
+        display: block;
       }
 
-      .time-slot.next-up {
-        border-color: #facc15;
-        box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
-      }
       .med-card {
-        transition: all 0.3s ease;
+        transition: background-color 0.2s ease;
+        border: 1px solid #e3e2e0;
       }
 
       .progress-bar-fill {
         transition: width 0.5s ease-in-out;
-        background-image: linear-gradient(to right, #2dd4bf, #0d9488);
+        background-color: #4582e8; /* Notion-like blue */
       }
 
       #taken-meds-content {
         display: grid;
         grid-template-rows: 0fr;
-        transition: grid-template-rows 0.5s ease-in-out;
+        transition: grid-template-rows 0.4s ease-in-out;
       }
       #taken-meds-content.expanded {
         grid-template-rows: 1fr;
@@ -78,71 +72,86 @@
         overflow: hidden;
       }
       #taken-meds-container {
-        max-height: 60vh;
+        max-height: 50vh;
         overflow-y: auto;
       }
 
       #taken-meds-container::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
       }
       #taken-meds-container::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 10px;
+        background: #f7f7f5;
       }
       #taken-meds-container::-webkit-scrollbar-thumb {
-        background: #94a3b8;
+        background: #dcdbd9;
         border-radius: 10px;
       }
-      #taken-meds-container::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+
+      .category-title {
+        font-size: 0.75rem; /* 12px */
+        font-weight: 500;
+        color: #9b9a97;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+        padding-left: 0.25rem;
       }
     </style>
   </head>
 
-  <body class="text-slate-800">
-    <main class="container mx-auto p-4 md:p-8 max-w-3xl">
-      <header class="text-center mb-8 fade-in">
-        <h1 class="text-3xl md:text-4xl font-bold text-teal-800">个人用药提醒助手</h1>
-        <p id="current-date" class="text-lg text-slate-500 mt-2 font-light"></p>
+  <body class="antialiased">
+    <main class="container mx-auto p-4 md:p-8 max-w-2xl">
+      <header class="text-center mb-10 fade-in">
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-800">个人用药提醒助手</h1>
+        <p id="current-date" class="text-base text-slate-500 mt-2 font-normal"></p>
         <p id="current-time" class="text-5xl font-bold text-slate-700 tracking-wider mt-1"></p>
       </header>
 
-      <div class="bg-white p-6 rounded-2xl shadow-lg mb-8 fade-in" style="animation-delay: 100ms">
-        <div class="flex justify-between items-center mb-2">
-          <span class="font-semibold text-slate-700">今日服药进度</span>
-          <span id="progress-text" class="font-bold text-teal-600">0 / 11</span>
+      <div
+        class="bg-white p-5 rounded-lg border border-gray-200/80 shadow-sm mb-8 fade-in"
+        style="animation-delay: 100ms"
+      >
+        <div class="flex justify-between items-center mb-2 text-sm">
+          <span class="font-semibold text-slate-700">今日进度</span>
+          <span id="progress-text" class="font-semibold text-slate-500">0 / 19</span>
         </div>
-        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-          <div id="progress-bar" class="h-3 rounded-full progress-bar-fill" style="width: 0%"></div>
-        </div>
-        <div class="text-center mt-6">
-          <button
-            id="notification-btn"
-            class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg text-sm flex items-center justify-center mx-auto gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path
-                d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"
-              />
-            </svg>
-            开启时段提醒
-          </button>
+        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div id="progress-bar" class="h-2 rounded-full progress-bar-fill" style="width: 0%"></div>
         </div>
       </div>
 
       <!-- Taken Meds Accordion -->
-      <div id="taken-meds-accordion" class="bg-white rounded-2xl shadow-lg mb-8 fade-in" style="animation-delay: 200ms">
+      <div
+        id="taken-meds-accordion"
+        class="bg-white rounded-lg border border-gray-200/80 shadow-sm mb-8 fade-in"
+        style="animation-delay: 200ms"
+      >
         <button id="taken-meds-header" class="w-full p-4 flex justify-between items-center cursor-pointer">
-          <h2 class="text-xl font-bold text-slate-700">今日已服用</h2>
+          <div class="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              class="text-green-500"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+              />
+            </svg>
+            <h2 class="text-base font-semibold text-slate-700">今日已服用</h2>
+          </div>
           <div class="flex items-center gap-2">
             <span id="taken-summary" class="text-slate-500 font-medium text-sm"></span>
             <svg
               id="accordion-arrow"
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
+              width="16"
+              height="16"
               fill="currentColor"
-              class="bi bi-chevron-down transition-transform duration-300"
+              class="bi bi-chevron-down text-slate-500 transition-transform duration-300"
               viewBox="0 0 16 16"
             >
               <path
@@ -154,21 +163,31 @@
         </button>
         <div id="taken-meds-content">
           <div id="taken-meds-container-wrapper">
-            <div id="taken-meds-container" class="space-y-3 p-4 border-t border-slate-200">
+            <div id="taken-meds-container" class="space-y-2 p-4 pt-0">
               <!-- Taken meds will be dynamically inserted here -->
             </div>
           </div>
         </div>
       </div>
 
-      <div id="medication-slots" class="space-y-8">
-        <!-- Medication slots will be generated here -->
+      <!-- Tabs for Medication Slots -->
+      <div class="fade-in" style="animation-delay: 300ms">
+        <div id="tab-buttons" class="flex gap-4 border-b border-gray-200 mb-6">
+          <!-- Tab buttons will be generated here -->
+        </div>
+        <div id="tab-panels">
+          <!-- Tab panels will be generated here -->
+        </div>
       </div>
 
-      <footer class="text-center mt-12">
-        <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 underline transition-colors">
-          重置今日记录
+      <footer class="text-center mt-12 space-y-4">
+        <button id="notification-btn" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">
+          开启提醒
         </button>
+        <p id="notification-warning" class="text-xs text-slate-400 hidden">
+          提醒功能在浏览器后台时可能因手机省电策略而延迟，建议将本页加入白名单。
+        </p>
+        <button id="reset-btn" class="text-sm text-slate-500 hover:text-red-600 transition-colors">重置今日</button>
       </footer>
     </main>
 
@@ -179,13 +198,19 @@
           mosapride: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.98 12.63c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 0015 11.93c0 .25.05.48.14.7L12 14.5l-3.14-2.17c.09-.22.14-.45.14-.7a2.53 2.53 0 00-2.62-2.5A2.53 2.53 0 004 11.93c0 .25.05.48.14.7L12 20l7.98-7.37zM12 4L4 9.37V20h16V9.37L12 4z" fill="#38bdf8"/></svg>`,
           careprazen: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17.5c-1.96 0-3.73-.91-4.88-2.34a.75.75 0 011.06-1.06c.82.82 2.05 1.32 3.39 1.32s2.57-.5 3.39-1.32a.75.75 0 111.06 1.06A6.97 6.97 0 0112 19.5z" fill="#818cf8"/></svg>`,
           sucralfate: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 2H6.5C5.67 2 5 2.67 5 3.5v17c0 .83.67 1.5 1.5 1.5h11c.83 0 1.5-.67 1.5-1.5v-17c0-.83-.67-1.5-1.5-1.5zM17 4h-2V3h2v1z" fill-rule="evenodd" clip-rule="evenodd" fill="#f472b6"/></svg>`,
+          tamsulosin: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h-8C6.34 4 5 5.34 5 7v10c0 1.66 1.34 3 3 3h8c1.66 0 3-1.34 3-3V7c0-1.66-1.34-3-3-3zm-4 13c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="#f59e0b"/></svg>`,
+          tcm_leaf: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 9c.83 0 1.5-.67 1.5-1.5S17.83 6 17 6s-1.5.67-1.5 1.5S16.17 9 17 9zm-5.5-6C9.15 3 7.31 4.85 7.31 7.19c0 .34.04.67.11.99L3 12.62 10.38 22l8.62-8-3.5-3.5c-.48-.48-1.13-.75-1.81-.75-1.42 0-2.58 1.16-2.58 2.58 0 .21.03.42.08.62l-2.69 2.69L12 15.5l-3.5-3.5.78-.78c.7-.7.7-1.84 0-2.54s-1.84-.7-2.54 0L6 9.46c-.09-.3-.14-.62-.14-.95C5.86 4.69 7.55 3 9.5 3c.96 0 1.84.38 2.5.99L13.5 5.5l1.5-1.5c.66-.61 1.54-.99 2.5-.99 1.95 0 3.5 1.55 3.5 3.5V7c0 .83-.67 1.5-1.5 1.5S18 7.83 18 7V6.5c0-1.38-1.12-2.5-2.5-2.5S13.12 4.62 13.12 6c0 .28.05.55.13.8l-1.43 1.43L10.5 7.02c.07-.21.1-.42.1-.64.01-1.33-1-2.43-2.31-2.54.54-.42 1.21-.65 1.92-.65z" fill="#10b981"/></svg>`,
+          antibiotic_shield: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1 13.59l-2.59-2.59L9.83 11.5l1.17 1.17 3.59-3.59L16 10.5l-5 5z" fill="#ef4444"/></svg>`,
+          undo: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0 .908-.417A4 4 0 1 0 8 4z"/><path d="M8.354.146a.5.5 0 0 0-.708 0l-1.5 1.5a.5.5 0 0 0 .708.708L8 1.707l1.146 1.147a.5.5 0 0 0 .708-.708zM8 1.5V11a.5.5 0 0 0 1 0V1.5a.5.5 0 0 0-1 0z"/></svg>`,
         }
         const medicationSchedule = [
+          // 胃肠道
           {
             id: 'houtou_am',
             name: '猴头健胃灵片',
             dose: '4片',
             slot: 'morning',
+            category: '胃肠道用药',
             iconKey: 'houtou',
             timing: '饭前服用',
           },
@@ -194,6 +219,7 @@
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             slot: 'morning',
+            category: '胃肠道用药',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
@@ -202,6 +228,7 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             slot: 'morning',
+            category: '胃肠道用药',
             iconKey: 'sucralfate',
             timing: '饭前30-60分钟服用',
           },
@@ -210,16 +237,25 @@
             name: '盐酸凯普拉生片',
             dose: '2片',
             slot: 'morning',
+            category: '胃肠道用药',
             iconKey: 'careprazen',
             timing: '饭前饭后均可',
           },
-
-          { id: 'houtou_noon', name: '猴头健胃灵片', dose: '4片', slot: 'noon', iconKey: 'houtou', timing: '饭前服用' },
+          {
+            id: 'houtou_noon',
+            name: '猴头健胃灵片',
+            dose: '4片',
+            slot: 'noon',
+            category: '胃肠道用药',
+            iconKey: 'houtou',
+            timing: '饭前服用',
+          },
           {
             id: 'mosapride_noon',
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             slot: 'noon',
+            category: '胃肠道用药',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
@@ -228,15 +264,16 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             slot: 'noon',
+            category: '胃肠道用药',
             iconKey: 'sucralfate',
             timing: '饭前30-60分钟服用',
           },
-
           {
             id: 'houtou_pm',
             name: '猴头健胃灵片',
             dose: '4片',
             slot: 'evening',
+            category: '胃肠道用药',
             iconKey: 'houtou',
             timing: '饭前服用',
           },
@@ -245,6 +282,7 @@
             name: '枸橼酸莫沙必利片',
             dose: '1片',
             slot: 'evening',
+            category: '胃肠道用药',
             iconKey: 'mosapride',
             timing: '饭前半小时服用',
           },
@@ -253,6 +291,7 @@
             name: '硫糖铝混悬凝胶',
             dose: '1袋',
             slot: 'evening',
+            category: '胃肠道用药',
             iconKey: 'sucralfate',
             timing: '饭前30-60分钟服用',
           },
@@ -261,8 +300,82 @@
             name: '盐酸凯普拉生片',
             dose: '2片',
             slot: 'evening',
+            category: '胃肠道用药',
             iconKey: 'careprazen',
             timing: '饭前饭后均可',
+          },
+          // 前列腺
+          {
+            id: 'tamsulosin',
+            name: '盐酸坦索罗辛缓释胶囊',
+            dose: '1粒',
+            slot: 'evening',
+            category: '前列腺用药',
+            iconKey: 'tamsulosin',
+            timing: '饭后服用',
+          },
+          {
+            id: 'moxifloxacin',
+            name: '盐酸莫西沙星片',
+            dose: '1片',
+            slot: 'evening',
+            category: '前列腺用药',
+            iconKey: 'antibiotic_shield',
+            timing: '每日一次，随餐服用',
+          },
+          {
+            id: 'qianlieshu_am',
+            name: '前列舒丸',
+            dose: '1袋',
+            slot: 'morning',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
+          },
+          {
+            id: 'shumitong_am',
+            name: '舒泌通胶囊',
+            dose: '4粒',
+            slot: 'morning',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
+          },
+          {
+            id: 'qianlieshu_noon',
+            name: '前列舒丸',
+            dose: '1袋',
+            slot: 'noon',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
+          },
+          {
+            id: 'shumitong_noon',
+            name: '舒泌通胶囊',
+            dose: '4粒',
+            slot: 'noon',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
+          },
+          {
+            id: 'qianlieshu_pm',
+            name: '前列舒丸',
+            dose: '1袋',
+            slot: 'evening',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
+          },
+          {
+            id: 'shumitong_pm',
+            name: '舒泌通胶囊',
+            dose: '4粒',
+            slot: 'evening',
+            category: '前列腺用药',
+            iconKey: 'tcm_leaf',
+            timing: '饭后服用',
           },
         ]
         const slotsConfig = {
@@ -270,7 +383,8 @@
           noon: { label: '中午', icon: '🕛', startHour: 11, endHour: 17 },
           evening: { label: '晚上', icon: '🌙', startHour: 17, endHour: 23 },
         }
-        const slotsContainer = document.getElementById('medication-slots')
+        const tabButtonsContainer = document.getElementById('tab-buttons')
+        const tabPanelsContainer = document.getElementById('tab-panels')
         const takenContainer = document.getElementById('taken-meds-container')
         const takenContent = document.getElementById('taken-meds-content')
         const accordionHeader = document.getElementById('taken-meds-header')
@@ -281,95 +395,128 @@
           mosapride: 'bg-sky-100',
           careprazen: 'bg-indigo-100',
           sucralfate: 'bg-rose-100',
+          tamsulosin: 'bg-amber-100',
+          tcm_leaf: 'bg-green-100',
+          antibiotic_shield: 'bg-red-100',
         }
+        let currentTab = 'morning'
+        let notificationTimeoutId = null
 
         function getTodayKey(prefix) {
           const now = new Date()
           return `${prefix}-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
         }
         let takenState = JSON.parse(localStorage.getItem(getTodayKey('medTakenState'))) || {}
-        let notifiedState = JSON.parse(localStorage.getItem(getTodayKey('medNotifiedState'))) || {}
         function saveState(key, state) {
           localStorage.setItem(getTodayKey(key), JSON.stringify(state))
         }
 
-        function renderMedications() {
-          slotsContainer.innerHTML = ''
-          takenContainer.innerHTML = ''
+        function renderAll() {
+          renderTabsAndPanels()
+          renderTakenMeds()
+          updateProgress()
+          addEventListeners()
+          switchTab(currentTab) // Ensure current tab is active
+        }
 
-          const takenMeds = medicationSchedule.filter((med) => takenState[med.id])
+        function renderTabsAndPanels() {
+          tabButtonsContainer.innerHTML = ''
+          tabPanelsContainer.innerHTML = ''
 
-          // Render upcoming medication slots
-          let animationDelay = 200
           Object.keys(slotsConfig).forEach((slotKey) => {
-            const upcomingInSlot = medicationSchedule.filter((med) => med.slot === slotKey && !takenState[med.id])
-            if (upcomingInSlot.length === 0) return
-
             const config = slotsConfig[slotKey]
-            const slotWrapper = document.createElement('div')
-            slotWrapper.id = `slot-${slotKey}`
-            slotWrapper.className =
-              'time-slot p-4 rounded-2xl border-2 border-transparent transition-all duration-300 fade-in'
-            slotWrapper.style.animationDelay = `${animationDelay}ms`
-            animationDelay += 100
+            const upcomingInSlot = medicationSchedule.filter((med) => med.slot === slotKey && !takenState[med.id])
 
-            let cardsHtml = upcomingInSlot
-              .map(
-                (med) => `
-                    <div class="med-card-wrapper">
-                      <div class="med-card bg-white p-4 rounded-xl flex items-center transition-all shadow-lg">
-                          <div class="mr-4 w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center ${
-                            iconColors[med.iconKey]
-                          }">${svgIcons[med.iconKey]}</div>
-                          <div class="flex-grow">
-                              <p class="font-bold text-base med-name">${med.name}</p>
-                              <p class="text-sm text-amber-700 font-semibold med-timing">${med.timing}</p>
-                              <p class="text-slate-500 text-sm mt-1">${med.dose}</p>
-                          </div>
-                          <input type="checkbox" data-dose-id="${
-                            med.id
-                          }" class="h-6 w-6 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer">
-                      </div>
-                    </div>`
-              )
-              .join('')
+            const button = document.createElement('button')
+            button.className = 'tab-button p-3 text-sm font-medium'
+            button.dataset.slot = slotKey
+            button.innerHTML = `<span>${
+              config.label
+            }</span> <span class="text-xs font-mono ml-1 px-1.5 py-0.5 rounded-md ${
+              upcomingInSlot.length > 0 ? 'bg-gray-200' : 'bg-green-100 text-green-700'
+            }">${upcomingInSlot.length}</span>`
+            tabButtonsContainer.appendChild(button)
 
-            slotWrapper.innerHTML = `
-                    <h2 class="text-2xl font-bold mb-4 text-slate-600">${config.icon} ${config.label}</h2>
-                    <div class="space-y-4">${cardsHtml}</div>
-                `
-            slotsContainer.appendChild(slotWrapper)
+            const panel = document.createElement('div')
+            panel.id = `panel-${slotKey}`
+            panel.className = 'tab-panel'
+
+            if (upcomingInSlot.length === 0) {
+              panel.innerHTML = `<div class="text-center p-8 bg-white rounded-lg border border-gray-200/80"><p class="text-base text-slate-500">此时间段药物已全部服用</p></div>`
+            } else {
+              const groupedByCategory = upcomingInSlot.reduce((acc, med) => {
+                ;(acc[med.category] = acc[med.category] || []).push(med)
+                return acc
+              }, {})
+
+              let panelHtml = '<div class="space-y-4">'
+              const categories = Object.keys(groupedByCategory).sort()
+              categories.forEach((category, index) => {
+                panelHtml += `<div class="${index > 0 ? 'mt-6' : ''}">`
+                panelHtml += `<h3 class="category-title">${category}</h3>`
+                panelHtml += `<div class="space-y-3">`
+                panelHtml += groupedByCategory[category]
+                  .map(
+                    (med) => `
+                            <div class="med-card-wrapper">
+                              <div class="med-card bg-white p-4 rounded-lg flex items-center">
+                                  <div class="mr-4 w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center ${
+                                    iconColors[med.iconKey]
+                                  }">${svgIcons[med.iconKey]}</div>
+                                  <div class="flex-grow">
+                                      <p class="font-semibold text-sm text-slate-800 med-name">${med.name}</p>
+                                      <p class="text-xs text-slate-500 mt-1">${med.timing} · ${med.dose}</p>
+                                  </div>
+                                  <input type="checkbox" data-dose-id="${
+                                    med.id
+                                  }" class="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer">
+                                  </div>
+                            </div>`
+                  )
+                  .join('')
+                panelHtml += `</div></div>`
+              })
+              panelHtml += '</div>'
+              panel.innerHTML = panelHtml
+            }
+            tabPanelsContainer.appendChild(panel)
           })
-          if (slotsContainer.innerHTML === '') {
-            slotsContainer.innerHTML = `<div class="text-center p-10 bg-white rounded-2xl shadow-lg"><p class="text-xl text-teal-600 font-semibold">🎉 恭喜！今日药物已全部服用完毕！</p></div>`
+          if (medicationSchedule.filter((m) => !takenState[m.id]).length === 0) {
+            tabPanelsContainer.innerHTML = `<div class="text-center p-10 bg-white rounded-2xl "><p class="text-xl text-teal-600 font-semibold">🎉 恭喜！今日药物已全部服用完毕！</p></div>`
           }
+        }
 
-          // Render taken medications
-          document.getElementById('taken-summary').textContent = `${takenMeds.length} / ${totalDoses} 种`
+        function renderTakenMeds() {
+          const takenMeds = medicationSchedule.filter((med) => takenState[med.id])
+          document.getElementById('taken-summary').textContent = `${takenMeds.length} / ${totalDoses}`
+
           if (takenMeds.length === 0) {
-            takenContainer.innerHTML = `<p class="text-slate-400 text-center py-4">暂无已服用记录</p>`
+            takenContainer.innerHTML = `<p class="text-slate-400 text-center py-4 text-sm">暂无已服用记录</p>`
           } else {
+            takenContainer.innerHTML = ''
             takenMeds
-              .sort((a, b) => a.slot.localeCompare(b.slot))
+              .sort((a, b) => {
+                const slotOrder = { morning: 1, noon: 2, evening: 3 }
+                return slotOrder[a.slot] - slotOrder[b.slot]
+              })
               .forEach((med) => {
                 const takenCard = document.createElement('div')
-                takenCard.className = 'slide-in-down bg-slate-100 p-3 rounded-lg flex items-center gap-3 text-sm'
+                takenCard.className =
+                  'slide-in-down bg-white p-3 rounded-lg flex items-center gap-3 text-sm border border-gray-200/80'
                 takenCard.innerHTML = `
-                        <div class="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center ${
+                        <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${
                           iconColors[med.iconKey]
                         }">${svgIcons[med.iconKey]}</div>
                         <div class="flex-grow">
-                            <p class="font-semibold text-slate-600">${med.name}</p>
+                            <p class="font-medium text-slate-700">${med.name}</p>
                             <p class="text-xs text-slate-500">${slotsConfig[med.slot].label} - ${med.dose}</p>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill text-teal-500 flex-shrink-0" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`
+                        <button class="undo-button p-1.5 rounded-full hover:bg-gray-200 text-slate-500 hover:text-slate-800 transition-colors" data-dose-id="${
+                          med.id
+                        }" title="撤销服用">${svgIcons['undo']}</button>`
                 takenContainer.appendChild(takenCard)
               })
           }
-
-          addEventListeners()
-          updateProgress()
-          updateTime()
         }
 
         function addEventListeners() {
@@ -381,11 +528,12 @@
                 saveState('medTakenState', takenState)
                 const cardWrapper = e.target.closest('.med-card-wrapper')
                 cardWrapper.style.transition = 'all 0.4s ease'
-                cardWrapper.style.transform = 'scale(0.8)'
+                cardWrapper.style.transform = 'scale(0.9)'
                 cardWrapper.style.opacity = '0'
                 setTimeout(() => {
-                  renderMedications()
-                }, 400)
+                  renderAll()
+                  scheduleNextNotification()
+                }, 350)
               }
             })
           })
@@ -393,14 +541,40 @@
             takenContent.classList.toggle('expanded')
             accordionArrow.classList.toggle('rotate-180')
           })
+          document.querySelectorAll('.tab-button').forEach((button) => {
+            button.addEventListener('click', () => {
+              currentTab = button.dataset.slot
+              switchTab(currentTab)
+            })
+          })
+          document.querySelectorAll('.undo-button').forEach((button) => {
+            button.addEventListener('click', (e) => {
+              const doseId = e.currentTarget.dataset.doseId
+              delete takenState[doseId]
+              saveState('medTakenState', takenState)
+              renderAll()
+              scheduleNextNotification()
+            })
+          })
         }
+        function switchTab(slotKey) {
+          document.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('active'))
+          const activeButton = document.querySelector(`.tab-button[data-slot="${slotKey}"]`)
+          if (activeButton) activeButton.classList.add('active')
+
+          document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'))
+          const activePanel = document.getElementById(`panel-${slotKey}`)
+          if (activePanel) activePanel.classList.add('active')
+        }
+
         function updateProgress() {
           const takenCount = Object.values(takenState).filter(Boolean).length
           const progress = totalDoses > 0 ? (takenCount / totalDoses) * 100 : 0
           document.getElementById('progress-bar').style.width = `${progress}%`
           document.getElementById('progress-text').textContent = `${takenCount} / ${totalDoses}`
         }
-        function updateTime() {
+
+        function updateTimeDisplay() {
           const now = new Date()
           const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
           document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', dateOptions)
@@ -409,35 +583,22 @@
             minute: '2-digit',
             second: '2-digit',
           })
+        }
 
-          const currentHour = now.getHours()
-          let nextSlotKey = null
-
-          const slotKeys = ['morning', 'noon', 'evening']
-          for (const key of slotKeys) {
-            const upcomingInSlot = medicationSchedule.filter((med) => med.slot === key && !takenState[med.id])
-            if (upcomingInSlot.length > 0 && currentHour < slotsConfig[key].endHour) {
-              nextSlotKey = key
-              break
-            }
+        function setInitialTab() {
+          const currentHour = new Date().getHours()
+          if (currentHour >= slotsConfig.noon.startHour && currentHour < slotsConfig.evening.startHour) {
+            currentTab = 'noon'
+          } else if (currentHour >= slotsConfig.evening.startHour || currentHour < slotsConfig.morning.startHour) {
+            currentTab = 'evening'
+          } else {
+            currentTab = 'morning'
           }
-          if (!nextSlotKey) {
-            const upcomingMeds = medicationSchedule.filter((med) => !takenState[med.id])
-            if (upcomingMeds.length > 0) nextSlotKey = upcomingMeds[0].slot
-          }
-
-          document.querySelectorAll('.time-slot').forEach((el) => {
-            el.classList.remove('next-up')
-          })
-          if (nextSlotKey) {
-            const nextItem = document.getElementById(`slot-${nextSlotKey}`)
-            if (nextItem) {
-              nextItem.classList.add('next-up')
-            }
-          }
+          switchTab(currentTab)
         }
 
         const notificationBtn = document.getElementById('notification-btn')
+        const warningText = document.getElementById('notification-warning')
         notificationBtn.addEventListener('click', () => {
           if (Notification.permission === 'granted') {
             alert('提醒功能已经开启。')
@@ -446,51 +607,71 @@
           Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
               alert('浏览器提醒已开启！')
-              notificationBtn.innerHTML = `... 提醒功能已开启`
-              notificationBtn.classList.replace('bg-yellow-400', 'bg-slate-300')
-              notificationBtn.classList.replace('text-yellow-900', 'text-slate-600')
+              notificationBtn.textContent = '提醒已开启'
+              warningText.classList.remove('hidden')
+              scheduleNextNotification()
             } else {
               alert('您已阻止浏览器提醒。')
             }
           })
         })
 
-        function scheduleNotifications() {
-          const now = new Date()
-          const currentHour = now.getHours()
-          const currentMinute = now.getMinutes()
+        function scheduleNextNotification() {
+          if (notificationTimeoutId) clearTimeout(notificationTimeoutId)
+          if (Notification.permission !== 'granted') return
 
-          if (currentMinute === 0) {
-            // Check on the hour
-            Object.keys(slotsConfig).forEach((key) => {
-              const slot = slotsConfig[key]
-              if (currentHour === slot.startHour && !notifiedState[key]) {
-                const medsInSlot = medicationSchedule.filter((med) => med.slot === key && !takenState[med.id])
-                if (medsInSlot.length > 0 && Notification.permission === 'granted') {
-                  new Notification(`该服用${slot.label}的药了！`, {
-                    body: `您有 ${medsInSlot.length} 种药物需要服用。`,
-                  })
-                  notifiedState[key] = true
-                  saveState('medNotifiedState', notifiedState)
-                }
+          const now = new Date()
+          let nextNotificationTime = null
+          let nextSlotKey = null
+
+          const slotKeys = ['morning', 'noon', 'evening']
+          for (const key of slotKeys) {
+            const slotStartTime = new Date()
+            slotStartTime.setHours(slotsConfig[key].startHour, 0, 0, 0)
+
+            if (slotStartTime > now) {
+              const upcomingInSlot = medicationSchedule.filter((med) => med.slot === key && !takenState[med.id])
+              if (upcomingInSlot.length > 0) {
+                nextNotificationTime = slotStartTime
+                nextSlotKey = key
+                break
               }
-            })
+            }
+          }
+
+          if (nextNotificationTime) {
+            const delay = nextNotificationTime.getTime() - now.getTime()
+            notificationTimeoutId = setTimeout(() => {
+              const slot = slotsConfig[nextSlotKey]
+              const medsInSlot = medicationSchedule.filter((med) => med.slot === nextSlotKey && !takenState[med.id])
+              new Notification(`该服用${slot.label}的药了！`, {
+                body: `您有 ${medsInSlot.length} 种药物需要服用。`,
+                tag: `med-reminder-${nextSlotKey}`,
+              })
+              // Schedule for the next day or next slot
+              scheduleNextNotification()
+            }, delay)
           }
         }
 
         document.getElementById('reset-btn').addEventListener('click', () => {
-          if (confirm('您确定要清除今天所有的服药和提醒记录吗？')) {
+          if (confirm('您确定要清除今天所有的服药记录吗？')) {
             takenState = {}
-            notifiedState = {}
-            saveState('medTakenState', takenState)
-            saveState('medNotifiedState', notifiedState)
-            renderMedications()
+            saveState('medTakenState', {})
+            renderAll()
+            scheduleNextNotification()
           }
         })
 
-        renderMedications()
-        setInterval(updateTime, 1000)
-        setInterval(scheduleNotifications, 60000) // Check every minute
+        // Initial setup
+        renderAll()
+        setInitialTab() // Set tab only once on load
+        setInterval(updateTimeDisplay, 1000) // Only update clock, not tabs
+        if (Notification.permission === 'granted') {
+          notificationBtn.textContent = '提醒已开启'
+          warningText.classList.remove('hidden')
+          scheduleNextNotification()
+        }
       })
     </script>
   </body>
