@@ -61,16 +61,11 @@
       }
 
       #taken-meds-content {
-        display: grid;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows 0.4s ease-in-out;
-      }
-      #taken-meds-content.expanded {
-        grid-template-rows: 1fr;
-      }
-      #taken-meds-container-wrapper {
+        max-height: 0;
         overflow: hidden;
+        transition: max-height 0.4s ease-in-out;
       }
+
       #taken-meds-container {
         max-height: 50vh;
         overflow-y: auto;
@@ -162,10 +157,8 @@
           </div>
         </button>
         <div id="taken-meds-content">
-          <div id="taken-meds-container-wrapper">
-            <div id="taken-meds-container" class="space-y-2 p-4 pt-0">
-              <!-- Taken meds will be dynamically inserted here -->
-            </div>
+          <div id="taken-meds-container" class="space-y-2 p-4 pt-0">
+            <!-- Taken meds will be dynamically inserted here -->
           </div>
         </div>
       </div>
@@ -523,43 +516,105 @@
         }
 
         function addEventListeners() {
-          document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-            checkbox.addEventListener('change', (e) => {
-              if (e.target.checked) {
-                const doseId = e.target.dataset.doseId
-                takenState[doseId] = true
-                saveState('medTakenState', takenState)
-                const cardWrapper = e.target.closest('.med-card-wrapper')
-                cardWrapper.style.transition = 'all 0.4s ease'
-                cardWrapper.style.transform = 'scale(0.9)'
-                cardWrapper.style.opacity = '0'
-                setTimeout(() => {
-                  renderAll()
-                  scheduleNextNotification()
-                }, 350)
-              }
-            })
+          const mainContainer = document.querySelector('main')
+          if (mainContainer.dataset.eventsAttached) return
+
+          mainContainer.addEventListener('click', (e) => {
+            const target = e.target
+            const checkbox = target.closest('input[type="checkbox"]')
+            const undoButton = target.closest('.undo-button')
+            const tabButton = target.closest('.tab-button')
+            const accordionButton = target.closest('#taken-meds-header')
+            const notificationButton = target.closest('#notification-btn')
+            const resetButton = target.closest('#reset-btn')
+
+            if (checkbox && checkbox.checked) {
+              handleTakeMed(checkbox)
+            } else if (undoButton) {
+              handleUndoTake(undoButton)
+            } else if (tabButton) {
+              handleTabSwitch(tabButton)
+            } else if (accordionButton) {
+              toggleAccordion()
+            } else if (notificationButton) {
+              handleNotificationRequest()
+            } else if (resetButton) {
+              handleReset()
+            }
           })
-          accordionHeader.addEventListener('click', () => {
-            takenContent.classList.toggle('expanded')
-            accordionArrow.classList.toggle('rotate-180')
-          })
-          document.querySelectorAll('.tab-button').forEach((button) => {
-            button.addEventListener('click', () => {
-              currentTab = button.dataset.slot
-              switchTab(currentTab)
-            })
-          })
-          document.querySelectorAll('.undo-button').forEach((button) => {
-            button.addEventListener('click', (e) => {
-              const doseId = e.currentTarget.dataset.doseId
-              delete takenState[doseId]
-              saveState('medTakenState', takenState)
-              renderAll()
+          mainContainer.dataset.eventsAttached = 'true'
+        }
+
+        function handleTakeMed(checkbox) {
+          const doseId = checkbox.dataset.doseId
+          takenState[doseId] = true
+          saveState('medTakenState', takenState)
+          const cardWrapper = checkbox.closest('.med-card-wrapper')
+          if (cardWrapper) {
+            cardWrapper.style.transition = 'all 0.4s ease'
+            cardWrapper.style.transform = 'scale(0.9)'
+            cardWrapper.style.opacity = '0'
+          }
+          setTimeout(() => {
+            renderAll()
+            scheduleNextNotification()
+          }, 350)
+        }
+
+        function handleUndoTake(button) {
+          const doseId = button.dataset.doseId
+          delete takenState[doseId]
+          saveState('medTakenState', takenState)
+          renderAll()
+          scheduleNextNotification()
+        }
+
+        function handleTabSwitch(button) {
+          currentTab = button.dataset.slot
+          switchTab(currentTab)
+        }
+
+        function toggleAccordion() {
+          const content = document.getElementById('taken-meds-content')
+          const arrow = document.getElementById('accordion-arrow')
+          const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px'
+          if (isExpanded) {
+            content.style.maxHeight = '0px'
+          } else {
+            const container = document.getElementById('taken-meds-container')
+            content.style.maxHeight = container.scrollHeight + 'px'
+          }
+          arrow.classList.toggle('rotate-180')
+        }
+
+        function handleNotificationRequest() {
+          const btn = document.getElementById('notification-btn')
+          const warning = document.getElementById('notification-warning')
+          if (Notification.permission === 'granted') {
+            alert('提醒功能已经开启。')
+            return
+          }
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              alert('浏览器提醒已开启！')
+              btn.textContent = '提醒已开启'
+              warning.classList.remove('hidden')
               scheduleNextNotification()
-            })
+            } else {
+              alert('您已阻止浏览器提醒。')
+            }
           })
         }
+
+        function handleReset() {
+          if (confirm('您确定要清除今天所有的服药记录吗？')) {
+            takenState = {}
+            saveState('medTakenState', {})
+            renderAll()
+            scheduleNextNotification()
+          }
+        }
+
         function switchTab(slotKey) {
           document.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('active'))
           const activeButton = document.querySelector(`.tab-button[data-slot="${slotKey}"]`)
@@ -588,7 +643,9 @@
           })
         }
 
+        let initialTabSet = false
         function setInitialTab() {
+          if (initialTabSet) return
           const currentHour = new Date().getHours()
           if (currentHour >= slotsConfig.noon.startHour && currentHour < slotsConfig.evening.startHour) {
             currentTab = 'noon'
@@ -598,26 +655,11 @@
             currentTab = 'morning'
           }
           switchTab(currentTab)
+          initialTabSet = true
         }
 
         const notificationBtn = document.getElementById('notification-btn')
         const warningText = document.getElementById('notification-warning')
-        notificationBtn.addEventListener('click', () => {
-          if (Notification.permission === 'granted') {
-            alert('提醒功能已经开启。')
-            return
-          }
-          Notification.requestPermission().then((permission) => {
-            if (permission === 'granted') {
-              alert('浏览器提醒已开启！')
-              notificationBtn.textContent = '提醒已开启'
-              warningText.classList.remove('hidden')
-              scheduleNextNotification()
-            } else {
-              alert('您已阻止浏览器提醒。')
-            }
-          })
-        })
 
         function scheduleNextNotification() {
           if (notificationTimeoutId) clearTimeout(notificationTimeoutId)
@@ -651,25 +693,15 @@
                 body: `您有 ${medsInSlot.length} 种药物需要服用。`,
                 tag: `med-reminder-${nextSlotKey}`,
               })
-              // Schedule for the next day or next slot
               scheduleNextNotification()
             }, delay)
           }
         }
 
-        document.getElementById('reset-btn').addEventListener('click', () => {
-          if (confirm('您确定要清除今天所有的服药记录吗？')) {
-            takenState = {}
-            saveState('medTakenState', {})
-            renderAll()
-            scheduleNextNotification()
-          }
-        })
-
         // Initial setup
         renderAll()
-        setInitialTab() // Set tab only once on load
-        setInterval(updateTimeDisplay, 1000) // Only update clock, not tabs
+        setInitialTab()
+        setInterval(updateTimeDisplay, 1000)
         if (Notification.permission === 'granted') {
           notificationBtn.textContent = '提醒已开启'
           warningText.classList.remove('hidden')
