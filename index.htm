@@ -383,6 +383,7 @@
           noon: { label: '中午', icon: '🕛', startHour: 11, endHour: 17 },
           evening: { label: '晚上', icon: '🌙', startHour: 17, endHour: 23 },
         }
+        const categoryOrder = ['胃肠道用药', '前列腺用药']
         const tabButtonsContainer = document.getElementById('tab-buttons')
         const tabPanelsContainer = document.getElementById('tab-panels')
         const takenContainer = document.getElementById('taken-meds-container')
@@ -416,7 +417,7 @@
           renderTakenMeds()
           updateProgress()
           addEventListeners()
-          switchTab(currentTab) // Ensure current tab is active
+          switchTab(currentTab)
         }
 
         function renderTabsAndPanels() {
@@ -450,7 +451,9 @@
               }, {})
 
               let panelHtml = '<div class="space-y-4">'
-              const categories = Object.keys(groupedByCategory).sort()
+              const categories = Object.keys(groupedByCategory).sort(
+                (a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)
+              )
               categories.forEach((category, index) => {
                 panelHtml += `<div class="${index > 0 ? 'mt-6' : ''}">`
                 panelHtml += `<h3 class="category-title">${category}</h3>`
